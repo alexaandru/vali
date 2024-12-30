@@ -1,6 +1,9 @@
 # Vali, Yet Another **Vali**dator
 
+[![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Build and Test](https://github.com/alexaandru/vali/actions/workflows/ci.yml/badge.svg)](https://github.com/alexaandru/vali/actions/workflows/ci.yml)
+[![Go Report Card](https://goreportcard.com/badge/github.com/alexaandru/vali)](https://goreportcard.com/report/github.com/alexaandru/vali)
+[![Go Reference](https://pkg.go.dev/badge/github.com/alexaandru/vali.svg)](https://pkg.go.dev/github.com/alexaandru/vali)
 
 **Vali** is a, purposefully tiny, validator which started as an exercise
 of _"what it would take to...?"_ and ended up being quite useful.
@@ -67,5 +70,5 @@ if err := vali.Validate(s); err != nil {
 
 - this README;
 - the [example](example_test.go) file;
-- the code documentation (`godoc -http=:5000`) and
+- the [code documentation](https://pkg.go.dev/github.com/alexaandru/vali) and
 - the [tests](vali_test.go).
