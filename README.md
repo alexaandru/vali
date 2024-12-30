@@ -19,11 +19,11 @@ with custom checks, see the [example](example_test.go) and
 [vali_test.go](vali_test.go) files. You can also easily change the
 struct tag being used (by creating a new `ValidationSet`).
 
-It will most likely NOT be extend with any other checks, if you need
+It will most likely NOT be extended with any other checks, if you need
 more power use something like [go-playground/validator](https://github.com/go-playground/validator)
 or fork it and have fun!
 
-At **180**LOC (not counting blank lines and comments) it's already
+At **180**LOC (not counting blank lines/comments/tests) it's already
 bigger than I intended. I want the code to remain easy to understand
 and easy to extend, which is why I plan to keep it as simple as possible.
 
