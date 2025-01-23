@@ -11,8 +11,8 @@ import (
 var (
 	ErrNotAStruct     = errors.New("not a struct")
 	ErrRequired       = errors.New("required value missing")
-	ErrInvalid        = errors.New("invalid")
-	ErrInvalidRegex   = fmt.Errorf("%w regex", ErrInvalid)
+	ErrFailed         = errors.New("failed")
+	ErrInvalidRegex   = fmt.Errorf("regex check %w", ErrFailed)
 	ErrInvalidChecker = errors.New("invalid checker")
 )
 

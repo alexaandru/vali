@@ -5,8 +5,26 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/alexaandru/vali)](https://goreportcard.com/report/github.com/alexaandru/vali)
 [![Go Reference](https://pkg.go.dev/badge/github.com/alexaandru/vali.svg)](https://pkg.go.dev/github.com/alexaandru/vali)
 
-**Vali** is a, purposefully tiny, validator which started as an exercise
-of _"what it would take to...?"_ and ended up being quite useful.
+**Vali**, a purposefully tiny validator. 🔋s are not included,
+but there are recipes on how to make them ☺️.
+
+Rather then a large collection of checks (which ultimately
+imply many deps) I wanted to try and go for the most things
+I could do with the least amount of checks.
+
+I didn't do a good job at that, I'll reckon, I think this
+library already has too many checks 🙃. I may delete some
+and it's highly unlikely I'll add any new ones.
+
+## Description
+
+It has a minimal [set of checks](#available-checks) and
+an easy way to add your own checks, see the [example](example_test.go) and
+[vali_test.go](vali_test.go) files.
+
+You can also change the struct tag being used (by creating
+a new `ValidationSet`) and a few other bits, see `ValidationSet` type
+definition.
 
 It is pointer-insensitive, will always validate the value
 behind the pointer, that is, given:
@@ -16,19 +34,6 @@ Foo *string `validate:"required"`
 ```
 
 passes if `*Foo != ""` NOT if `Foo != nil`.
-
-It has only a few, very basic checks, but it can easily be extended
-with custom checks, see the [example](example_test.go) and
-[vali_test.go](vali_test.go) files. You can also easily change the
-struct tag being used (by creating a new `ValidationSet`).
-
-It will most likely NOT be extended with any other checks, if you need
-more power use something like [go-playground/validator](https://github.com/go-playground/validator)
-or fork it and have fun!
-
-At **180**LOC (not counting blank lines/comments/tests) it's already
-bigger than I intended. I want the code to remain easy to understand
-and easy to extend, which is why I plan to keep it as simple as possible.
 
 Finally, it only validates public/exported fields. Adding validation
 tags to private fields will be ignored.
@@ -61,6 +66,7 @@ s := struct {
 		Bar string `validate:"required"`
 	}
 }{}
+
 if err := vali.Validate(s); err != nil {
     fmt.Println("oh noes!...")
 }
