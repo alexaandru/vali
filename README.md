@@ -5,7 +5,7 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/alexaandru/vali)](https://goreportcard.com/report/github.com/alexaandru/vali)
 [![Go Reference](https://pkg.go.dev/badge/github.com/alexaandru/vali.svg)](https://pkg.go.dev/github.com/alexaandru/vali)
 
-**Vali**, a purposefully tiny validator. 🔋s are not included,
+**Vali**, a purposefully tiny validator. 🔋🔋🔋 are not included,
 but there are recipes on how to make them ☺️.
 
 Rather then a large collection of checks (which ultimately

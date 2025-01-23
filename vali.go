@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"sync"
 )
 
 type (
@@ -40,6 +41,8 @@ type (
 		//     `validate:"required,uuid,one_of:foo|bar|baz"`
 		CheckSep,
 		CheckArgSep string
+
+		sync.RWMutex
 	}
 )
 
@@ -72,6 +75,9 @@ func RegisterChecker(name string, fn Checker) {
 
 // RegisterChecker registers a new [Checker] to the [ValidationSet].
 func (s *ValidationSet) RegisterChecker(name string, fn Checker) {
+	s.Lock()
+	defer s.Unlock()
+
 	s.checkers[name] = fn
 }
 
@@ -82,6 +88,9 @@ func RegisterCheckerMaker(name string, fn CheckerMaker) {
 
 // RegisterCheckerMaker registers a new [CheckerMaker] to the [ValidationSet].
 func (s *ValidationSet) RegisterCheckerMaker(name string, fn CheckerMaker) {
+	s.Lock()
+	defer s.Unlock()
+
 	s.checkerMakers[name] = fn
 }
 
@@ -167,15 +176,23 @@ func (s *ValidationSet) parse(tag string) (cx []Checker, err error) {
 			continue
 		}
 
-		if v := s.checkers[tag]; v != nil {
+		s.RLock()
+		v := s.checkers[tag]
+		s.RUnlock()
+
+		switch {
+		case v != nil:
 			cx = append(cx, v)
-		} else if strings.Contains(tag, s.CheckArgSep) {
+		case strings.Contains(tag, s.CheckArgSep):
 			tagz := strings.Split(tag, s.CheckArgSep)
 			if len(tagz) != 2 || tagz[0] == "" || tagz[1] == "" {
 				return nil, fmt.Errorf("%w: %s", ErrInvalidChecker, tag)
 			}
 
+			s.RLock()
 			cm := s.checkerMakers[tagz[0]]
+			s.RUnlock()
+
 			if cm == nil {
 				return nil, fmt.Errorf("%w: %s", ErrInvalidChecker, tag)
 			}
@@ -187,7 +204,7 @@ func (s *ValidationSet) parse(tag string) (cx []Checker, err error) {
 
 			s.RegisterChecker(tag, c)
 			cx = append(cx, c)
-		} else {
+		default:
 			return nil, fmt.Errorf("%w: %s", ErrInvalidChecker, tag)
 		}
 	}
