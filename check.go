@@ -9,10 +9,9 @@ import (
 
 // Possible errors.
 var (
-	ErrNotAStruct     = errors.New("not a struct")
-	ErrRequired       = errors.New("required value missing")
 	ErrFailed         = errors.New("failed")
-	ErrInvalidRegex   = fmt.Errorf("regex check %w", ErrFailed)
+	ErrNotAStruct     = errors.New("not a struct")
+	ErrRequired       = errors.New("value missing")
 	ErrInvalidChecker = errors.New("invalid checker")
 )
 
@@ -43,7 +42,7 @@ func Regex(args string) (c Checker, err error) {
 			return
 		}
 
-		return fmt.Errorf("%w: %q does not match %s", ErrInvalidRegex, act, args)
+		return fmt.Errorf("%q does not match %s", act, args)
 	}
 
 	return

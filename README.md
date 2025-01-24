@@ -8,7 +8,7 @@
 **Vali**, a purposefully tiny validator. 🔋🔋🔋 are not included,
 but there are recipes on how to make them ☺️.
 
-Rather then a large collection of checks (which ultimately
+Rather than a large collection of checks (which ultimately
 imply many deps) I wanted to try and go for the most things
 I could do with the least amount of checks.
 

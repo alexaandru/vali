@@ -49,16 +49,16 @@ func TestValidate(t *testing.T) {
 	t.Parallel()
 
 	testCases := slices.Concat(slices.Clone(testCases()), []testCase{
-		{v0, NewValidator("xoxo"), "Foo.Bar.Baz.Foobar: required value missing", ErrRequired},
-		{v1, NewValidator("xoxo"), `Foo.Bar.Baz.Foobar: regex check failed: "foo" does not match (?i)^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$`, ErrFailed},
+		{v0, NewValidator("xoxo"), "Foo.Bar.Baz.Foobar: required check failed: value missing", ErrRequired},
+		{v1, NewValidator("xoxo"), `Foo.Bar.Baz.Foobar: uuid check failed: "foo" does not match (?i)^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$`, ErrFailed},
 		{v2, NewValidator("xoxo"), "", nil},
 
-		{&v0, NewValidator("xoxo"), "Foo.Bar.Baz.Foobar: required value missing", ErrRequired},
-		{&v1, NewValidator("xoxo"), `Foo.Bar.Baz.Foobar: regex check failed: "foo" does not match (?i)^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$`, ErrFailed},
+		{&v0, NewValidator("xoxo"), "Foo.Bar.Baz.Foobar: required check failed: value missing", ErrRequired},
+		{&v1, NewValidator("xoxo"), `Foo.Bar.Baz.Foobar: uuid check failed: "foo" does not match (?i)^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$`, ErrFailed},
 		{&v2, NewValidator("xoxo"), "", nil},
 
-		{p(&v0), NewValidator("xoxo"), "Foo.Bar.Baz.Foobar: required value missing", ErrRequired},
-		{p(&v1), NewValidator("xoxo"), `Foo.Bar.Baz.Foobar: regex check failed: "foo" does not match (?i)^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$`, ErrFailed},
+		{p(&v0), NewValidator("xoxo"), "Foo.Bar.Baz.Foobar: required check failed: value missing", ErrRequired},
+		{p(&v1), NewValidator("xoxo"), `Foo.Bar.Baz.Foobar: uuid check failed: "foo" does not match (?i)^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$`, ErrFailed},
 		{p(&v2), NewValidator("xoxo"), "", nil},
 	})
 
@@ -121,7 +121,7 @@ func TestValidationSetRegisterChecker(t *testing.T) {
 
 	rgb := func(v reflect.Value) error {
 		if !slices.Contains([]string{"red", "green", "blue"}, fmt.Sprint(v.Interface())) {
-			return fmt.Errorf("rgb check %w: must be red, green or blue", ErrFailed)
+			return errors.New("must be red, green or blue")
 		}
 
 		return nil
@@ -150,7 +150,7 @@ func TestValidationSetRegisterCheckerMaker(t *testing.T) {
 	_oneOf := func(args string) (c Checker, err error) {
 		vals := strings.Split(args, "|")
 		if len(vals) == 0 {
-			return nil, fmt.Errorf("one_of check %w: must pass at least one value", ErrFailed)
+			return nil, errors.New("must pass at least one value")
 		}
 
 		c = func(v reflect.Value) (err error) {
@@ -159,7 +159,7 @@ func TestValidationSetRegisterCheckerMaker(t *testing.T) {
 				return
 			}
 
-			return fmt.Errorf("one_of check %w: %q is not one of %v", ErrFailed, act, vals)
+			return fmt.Errorf("%q is not one of %v", act, vals)
 		}
 
 		return
@@ -172,7 +172,7 @@ func TestValidationSetRegisterCheckerMaker(t *testing.T) {
 		t.Fatalf("Expected %v got %v", ErrFailed, err)
 	}
 
-	exp := `Foo: one_of check failed: "foobar" is not one of [foo bar baz]`
+	exp := `Foo: one_of3 check failed: "foobar" is not one of [foo bar baz]`
 	if act := err.Error(); act != exp {
 		t.Fatalf("Expected %q got %q", exp, act)
 	}
@@ -223,11 +223,11 @@ func testCases() []testCase { //nolint:funlen // ok
 		{struct {
 			Foo string `json:",omitempty" validate:"required"`
 			Bar int
-		}{}, nil, "Foo: required value missing", ErrRequired},
+		}{}, nil, "Foo: required check failed: value missing", ErrRequired},
 		{struct {
 			Foo string `json:",omitempty" validate:"  required   "`
 			Bar int
-		}{}, nil, "Foo: required value missing", ErrRequired},
+		}{}, nil, "Foo: required check failed: value missing", ErrRequired},
 		{struct {
 			Foo string `json:",omitempty" validate:"    bogus   ,   required   "`
 			Bar int
@@ -239,15 +239,15 @@ func testCases() []testCase { //nolint:funlen // ok
 		{struct {
 			Foo *string `json:",omitempty" validate:"required"`
 			Bar int
-		}{Foo: p("")}, nil, "Foo: required value missing", ErrRequired},
+		}{Foo: p("")}, nil, "Foo: required check failed: value missing", ErrRequired},
 		{struct {
 			Foo ***string `json:",omitempty" validate:"required"`
 			Bar int
-		}{Foo: p(p(p("")))}, nil, "Foo: required value missing", ErrRequired},
+		}{Foo: p(p(p("")))}, nil, "Foo: required check failed: value missing", ErrRequired},
 		{struct {
 			Foo *string `json:",omitempty" validate:"required"`
 			Bar int
-		}{}, nil, "Foo: required value missing", ErrRequired},
+		}{}, nil, "Foo: required check failed: value missing", ErrRequired},
 		{struct {
 			Foo *string `json:",omitempty" validate:"uuid"`
 			Bar int
@@ -255,21 +255,21 @@ func testCases() []testCase { //nolint:funlen // ok
 		{struct {
 			Foo *string `json:",omitempty" validate:"uuid,required"`
 			Bar int
-		}{}, nil, "Foo: required value missing", ErrRequired},
+		}{}, nil, "Foo: required check failed: value missing", ErrRequired},
 		{struct {
 			Foo *string `json:",omitempty" validate:"required,uuid"`
 			Bar int
-		}{}, nil, "Foo: required value missing", ErrRequired},
+		}{}, nil, "Foo: required check failed: value missing", ErrRequired},
 		{struct {
 			Foo *string `json:",omitempty" validate:"required,uuid"`
 			Bar int
-		}{Foo: p("foo")}, nil, `Foo: regex check failed: "foo" does not match (?i)^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$`, ErrFailed},
+		}{Foo: p("foo")}, nil, `Foo: uuid check failed: "foo" does not match (?i)^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$`, ErrFailed},
 		{struct {
 			Foo    string `json:",omitempty" validate:"required"`
 			Bar    string `json:",omitempty" validate:"required"`
 			Baz    string `json:",omitempty" validate:"required"`
 			Foobar int
-		}{Foo: "foo", Bar: "bar"}, nil, "Baz: required value missing", ErrRequired},
+		}{Foo: "foo", Bar: "bar"}, nil, "Baz: required check failed: value missing", ErrRequired},
 		{struct {
 			Foo string `json:",omitempty" validate:"required,,,,uuid"`
 			Bar int
@@ -320,7 +320,7 @@ func testCases() []testCase { //nolint:funlen // ok
 				Baz    string `json:",omitempty" validate:"one_of:foo|bar|baz"`
 				Foobar int
 			}{Foo: "foo", Bar: "Bar", Baz: "baz"},
-			nil, `Bar: regex check failed: "Bar" does not match ^(foo|bar|baz)$`, ErrFailed,
+			nil, `Bar: one_of check failed: "Bar" does not match ^(foo|bar|baz)$`, ErrFailed,
 		},
 	}
 }

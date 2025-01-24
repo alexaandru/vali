@@ -155,21 +155,27 @@ func (s *ValidationSet) validateScalar(v reflect.Value, tag string, scope ...str
 		}
 	}()
 
-	checks, err := s.parse(tag)
+	checks, chkNames, err := s.parse(tag)
 	if err != nil {
 		return
 	}
 
-	for _, ck := range checks {
+	for i, ck := range checks {
 		if err = ck(v); err != nil {
-			return
+			name := chkNames[i]
+			if strings.Contains(name, s.CheckArgSep) {
+				nx := strings.Split(name, s.CheckArgSep)
+				name = nx[0]
+			}
+
+			return fmt.Errorf("%s check %w: %w", name, ErrFailed, err)
 		}
 	}
 
 	return
 }
 
-func (s *ValidationSet) parse(tag string) (cx []Checker, err error) {
+func (s *ValidationSet) parse(tag string) (cx []Checker, cxNames []string, err error) {
 	for _, tag := range strings.Split(tag, s.CheckSep) {
 		tag = strings.TrimSpace(tag)
 		if tag == "" {
@@ -183,10 +189,11 @@ func (s *ValidationSet) parse(tag string) (cx []Checker, err error) {
 		switch {
 		case v != nil:
 			cx = append(cx, v)
+			cxNames = append(cxNames, tag)
 		case strings.Contains(tag, s.CheckArgSep):
 			tagz := strings.Split(tag, s.CheckArgSep)
 			if len(tagz) != 2 || tagz[0] == "" || tagz[1] == "" {
-				return nil, fmt.Errorf("%w: %s", ErrInvalidChecker, tag)
+				return nil, nil, fmt.Errorf("%w: %s", ErrInvalidChecker, tag)
 			}
 
 			s.RLock()
@@ -194,18 +201,19 @@ func (s *ValidationSet) parse(tag string) (cx []Checker, err error) {
 			s.RUnlock()
 
 			if cm == nil {
-				return nil, fmt.Errorf("%w: %s", ErrInvalidChecker, tag)
+				return nil, nil, fmt.Errorf("%w: %s", ErrInvalidChecker, tag)
 			}
 
 			c, err2 := cm(tagz[1])
 			if err2 != nil {
-				return nil, fmt.Errorf("%w: %s: %w", ErrInvalidChecker, tag, err2)
+				return nil, nil, fmt.Errorf("%w: %s: %w", ErrInvalidChecker, tag, err2)
 			}
 
 			s.RegisterChecker(tag, c)
 			cx = append(cx, c)
+			cxNames = append(cxNames, tagz[0])
 		default:
-			return nil, fmt.Errorf("%w: %s", ErrInvalidChecker, tag)
+			return nil, nil, fmt.Errorf("%w: %s", ErrInvalidChecker, tag)
 		}
 	}
 

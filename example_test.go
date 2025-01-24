@@ -14,7 +14,7 @@ func ExampleValidationSet_Validate() {
 	}{}
 	err := vali.Validate(s)
 	fmt.Println(err)
-	// Output: Foo.Bar: required value missing
+	// Output: Foo.Bar: required check failed: value missing
 }
 
 func ExampleValidationSet_Validate_custom_checker() {
@@ -42,7 +42,7 @@ func ExampleValidationSet_Validate_custom_checker() {
 	err = vali.Validate(s)
 	fmt.Println(err) // this should not
 
-	// Output: Foo.Bar: regex check failed: "123" does not match ^\d{3}-?\d{3}-?\d{4}$
+	// Output: Foo.Bar: phone check failed: "123" does not match ^\d{3}-?\d{3}-?\d{4}$
 	// <nil>
 }
 
