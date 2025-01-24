@@ -9,12 +9,9 @@
 but there are recipes on how to make them ☺️.
 
 Rather than a large collection of checks (which ultimately
-imply many deps) I wanted to try and go for the most things
-I could do with the least amount of checks.
-
-I didn't do a good job at that, I'll reckon, I think this
-library already has too many checks 🙃. I may delete some
-and it's highly unlikely I'll add any new ones.
+imply many deps) **Vali** aims for the most things you could do
+with the least amount of checks. Even so, there are probably
+one or two too many checks already 🙃.
 
 ## Description
 
@@ -22,7 +19,7 @@ It has a minimal [set of checks](#available-checks) and
 an easy way to add your own checks, see the [example](example_test.go) and
 [vali_test.go](vali_test.go) files.
 
-You can also change the struct tag being used (by creating
+You can also change the struct tag name being used (by creating
 a new `ValidationSet`) and a few other bits, see `ValidationSet` type
 definition.
 
@@ -43,9 +40,9 @@ tags to private fields will be ignored.
 | Check          | Description                             |
 | -------------- | --------------------------------------- |
 | required       | must NOT be `IsZero()`                  |
-| uuid           | 32 (dash separated) hexdigits           |
 | regex:`<rx>`   | string representation must match `<rx>` |
 | one_of:a\|b\|c | must be one of {a,b,c}                  |
+| uuid           | 32 (dash separated) hexdigits           |
 | `<your_own>`   | you can easily add your own...          |
 
 Multiple checks must be combined with a comma (,) extra space
@@ -63,7 +60,7 @@ to the `Checker` func.
 ```Go
 s := struct {
 	Foo struct {
-		Bar string `validate:"required"`
+		Bar string `validate:"required, one_of:foo|bar|baz"`
 	}
 }{}
 
