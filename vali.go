@@ -168,7 +168,7 @@ func (s *ValidationSet) validateScalar(v reflect.Value, tag string, scope ...str
 				name = nx[0]
 			}
 
-			return fmt.Errorf("%s check %w: %w", name, ErrFailed, err)
+			return fmt.Errorf("%s %w: %w", name, ErrCheckFailed, err)
 		}
 	}
 

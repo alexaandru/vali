@@ -9,7 +9,7 @@ import (
 
 // Possible errors.
 var (
-	ErrFailed         = errors.New("failed")
+	ErrCheckFailed    = errors.New("check failed")
 	ErrNotAStruct     = errors.New("not a struct")
 	ErrRequired       = errors.New("value missing")
 	ErrInvalidChecker = errors.New("invalid checker")

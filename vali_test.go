@@ -50,15 +50,15 @@ func TestValidate(t *testing.T) {
 
 	testCases := slices.Concat(slices.Clone(testCases()), []testCase{
 		{v0, NewValidator("xoxo"), "Foo.Bar.Baz.Foobar: required check failed: value missing", ErrRequired},
-		{v1, NewValidator("xoxo"), `Foo.Bar.Baz.Foobar: uuid check failed: "foo" does not match (?i)^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$`, ErrFailed},
+		{v1, NewValidator("xoxo"), `Foo.Bar.Baz.Foobar: uuid check failed: "foo" does not match (?i)^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$`, ErrCheckFailed},
 		{v2, NewValidator("xoxo"), "", nil},
 
 		{&v0, NewValidator("xoxo"), "Foo.Bar.Baz.Foobar: required check failed: value missing", ErrRequired},
-		{&v1, NewValidator("xoxo"), `Foo.Bar.Baz.Foobar: uuid check failed: "foo" does not match (?i)^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$`, ErrFailed},
+		{&v1, NewValidator("xoxo"), `Foo.Bar.Baz.Foobar: uuid check failed: "foo" does not match (?i)^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$`, ErrCheckFailed},
 		{&v2, NewValidator("xoxo"), "", nil},
 
 		{p(&v0), NewValidator("xoxo"), "Foo.Bar.Baz.Foobar: required check failed: value missing", ErrRequired},
-		{p(&v1), NewValidator("xoxo"), `Foo.Bar.Baz.Foobar: uuid check failed: "foo" does not match (?i)^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$`, ErrFailed},
+		{p(&v1), NewValidator("xoxo"), `Foo.Bar.Baz.Foobar: uuid check failed: "foo" does not match (?i)^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$`, ErrCheckFailed},
 		{p(&v2), NewValidator("xoxo"), "", nil},
 	})
 
@@ -130,8 +130,8 @@ func TestValidationSetRegisterChecker(t *testing.T) {
 	RegisterChecker("rgb", rgb)
 
 	err := Validate(x)
-	if !errors.Is(err, ErrFailed) {
-		t.Fatalf("Expected %v got %v", ErrFailed, err)
+	if !errors.Is(err, ErrCheckFailed) {
+		t.Fatalf("Expected %v got %v", ErrCheckFailed, err)
 	}
 
 	exp := "Foo: rgb check failed: must be red, green or blue"
@@ -168,8 +168,8 @@ func TestValidationSetRegisterCheckerMaker(t *testing.T) {
 	RegisterCheckerMaker("one_of3", _oneOf)
 
 	err := Validate(x)
-	if !errors.Is(err, ErrFailed) {
-		t.Fatalf("Expected %v got %v", ErrFailed, err)
+	if !errors.Is(err, ErrCheckFailed) {
+		t.Fatalf("Expected %v got %v", ErrCheckFailed, err)
 	}
 
 	exp := `Foo: one_of3 check failed: "foobar" is not one of [foo bar baz]`
@@ -263,7 +263,7 @@ func testCases() []testCase { //nolint:funlen // ok
 		{struct {
 			Foo *string `json:",omitempty" validate:"required,uuid"`
 			Bar int
-		}{Foo: p("foo")}, nil, `Foo: uuid check failed: "foo" does not match (?i)^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$`, ErrFailed},
+		}{Foo: p("foo")}, nil, `Foo: uuid check failed: "foo" does not match (?i)^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$`, ErrCheckFailed},
 		{struct {
 			Foo    string `json:",omitempty" validate:"required"`
 			Bar    string `json:",omitempty" validate:"required"`
@@ -302,7 +302,7 @@ func testCases() []testCase { //nolint:funlen // ok
 				Foobar int
 			}{Foo: "foo", Bar: "bar", Baz: "other"},
 			nil,
-			`Baz: regex check failed: "other" does not match ^(foo|bar|baz)$`, ErrFailed,
+			`Baz: regex check failed: "other" does not match ^(foo|bar|baz)$`, ErrCheckFailed,
 		},
 		{
 			struct {
@@ -320,7 +320,7 @@ func testCases() []testCase { //nolint:funlen // ok
 				Baz    string `json:",omitempty" validate:"one_of:foo|bar|baz"`
 				Foobar int
 			}{Foo: "foo", Bar: "Bar", Baz: "baz"},
-			nil, `Bar: one_of check failed: "Bar" does not match ^(foo|bar|baz)$`, ErrFailed,
+			nil, `Bar: one_of check failed: "Bar" does not match ^(foo|bar|baz)$`, ErrCheckFailed,
 		},
 	}
 }
