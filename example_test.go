@@ -46,6 +46,32 @@ func ExampleValidator_Validate_custom_checker() {
 	// <nil>
 }
 
+func ExampleValidator_Validate_custom_min() {
+	s := struct {
+		Foo struct {
+			Bar int8 `validate:"min10"`
+		}
+	}{}
+
+	min10, err := vali.Min("10")
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	vali.RegisterChecker("min10", min10)
+
+	s.Foo.Bar = 9
+	err = vali.Validate(s)
+	fmt.Println(err) // this should err
+
+	s.Foo.Bar = 10
+	err = vali.Validate(s)
+	fmt.Println(err) // this should not
+
+	// Output: Foo.Bar: min10 check failed: 9 is less than 10
+	// <nil>
+}
+
 func ExampleValidator_Validate_unexported() {
 	s := struct {
 		Foo struct {

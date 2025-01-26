@@ -144,6 +144,83 @@ func TestValidate(t *testing.T) { //nolint:funlen // ok
 		{t1{Foo: "foobar"}, nil, "required", "", nil},
 		{&t2{t1: t1{Foo: "foobar"}}, nil, "", "", nil},
 
+		{0, nil, "eq:0", "", nil},
+		{0, nil, "ne:0", "ne check failed: 0 is equal to 0", ErrCheckFailed},
+		{float32(0), nil, "ne:0", "ne check failed: 0 is equal to 0", ErrCheckFailed},
+		{float64(0), nil, "ne:0", "ne check failed: 0 is equal to 0", ErrCheckFailed},
+		{"", nil, "ne:0", "ne check failed: len 0 is equal to 0", ErrCheckFailed},
+		{[]string{}, nil, "ne:0", "ne check failed: len 0 is equal to 0", ErrCheckFailed},
+		{map[int]string{}, nil, "ne:0", "ne check failed: len 0 is equal to 0", ErrCheckFailed},
+
+		{1, nil, "eq:0", "eq check failed: 1 is not equal to 0", ErrCheckFailed},
+		{float32(1.1), nil, "eq:0", "eq check failed: 1 is not equal to 0", ErrCheckFailed},
+		{float64(1.1), nil, "eq:0", "eq check failed: 1 is not equal to 0", ErrCheckFailed},
+		{"foo", nil, "eq:0", "eq check failed: len 3 is not equal to 0", ErrCheckFailed},
+		{[]string{""}, nil, "eq:0", "eq check failed: len 1 is not equal to 0", ErrCheckFailed},
+		{map[int]string{0: ""}, nil, "eq:0", "eq check failed: len 1 is not equal to 0", ErrCheckFailed},
+
+		{1, nil, "eq:1", "", nil},
+		{float32(1.1), nil, "eq:1.1", "", nil},
+		{float64(1.1), nil, "eq:1.1", "", nil},
+		{"foo", nil, "eq:3", "", nil},
+		{[]string{""}, nil, "eq:1", "", nil},
+		{map[int]string{0: ""}, nil, "eq:1", "", nil},
+
+		{0, nil, "min:foo", `min check failed: strconv.Atoi: parsing "foo": invalid syntax`, ErrCheckFailed},
+		{0, nil, "min:5", "min check failed: 0 is less than 5", ErrCheckFailed},
+		{0, nil, "required,min:5", "required check failed: value missing", ErrCheckFailed},
+		{uint16(1), nil, "required,min:5", "min check failed: 1 is less than 5", ErrCheckFailed},
+		{float32(1), nil, "required,min:5", "min check failed: 1 is less than 5", ErrCheckFailed},
+		{float64(1), nil, "required,min:5", "min check failed: 1 is less than 5", ErrCheckFailed},
+		{4, nil, "min:5", "min check failed: 4 is less than 5", ErrCheckFailed},
+		{uint64(5), nil, "min:5", "", nil},
+		{5_000_000_000_000_000, nil, "min:5", "", nil},
+
+		{"", nil, "min:5", "min check failed: len 0 is less than 5", ErrCheckFailed},
+		{"", nil, "required,min:5", "required check failed: value missing", ErrCheckFailed},
+		{"a", nil, "required,min:5", "min check failed: len 1 is less than 5", ErrCheckFailed},
+		{"abcd", nil, "min:5", "min check failed: len 4 is less than 5", ErrCheckFailed},
+		{"abcde", nil, "min:5", "", nil},
+		{strings.Repeat("abcde", 1_000), nil, "min:5", "", nil},
+
+		{0, nil, "max:foo", `max check failed: strconv.Atoi: parsing "foo": invalid syntax`, ErrCheckFailed},
+		{0, nil, "max:5", "", nil},
+		{int32(1000), nil, "max:5", "max check failed: 1000 is more than 5", ErrCheckFailed},
+		{uint64(6), nil, "max:5", "max check failed: 6 is more than 5", ErrCheckFailed},
+		{float32(6), nil, "max:5", "max check failed: 6 is more than 5", ErrCheckFailed},
+		{float64(6), nil, "max:5", "max check failed: 6 is more than 5", ErrCheckFailed},
+		{5, nil, "max:5", "", nil},
+		{4, nil, "max:5", "", nil},
+
+		{"", nil, "max:5", "", nil},
+		{"", nil, "required,max:5", "required check failed: value missing", ErrCheckFailed},
+		{"abcdef", nil, "required,max:5", "max check failed: len 6 is more than 5", ErrCheckFailed},
+		{"abcde", nil, "max:5", "", nil},
+		{"abcd", nil, "max:5", "", nil},
+		{"abc", nil, "max:5", "", nil},
+		{"ab", nil, "max:5", "", nil},
+		{"a", nil, "max:5", "", nil},
+		{strings.Repeat("abcde", 1_000), nil, "min:5", "", nil},
+
+		{[]int{}, nil, "min:3", "min check failed: len 0 is less than 3", ErrCheckFailed},
+		{[]int{1}, nil, "min:3", "min check failed: len 1 is less than 3", ErrCheckFailed},
+		{[]float32{1, 2}, nil, "min:3", "min check failed: len 2 is less than 3", ErrCheckFailed},
+		{[]int{1, 2, 3}, nil, "min:3", "", nil},
+		{[]int{1, 2, 3, 4, 5}, nil, "min:3", "", nil},
+
+		{[...]int{}, nil, "max:3", "", nil},
+		{[...]int{1}, nil, "max:3", "", nil},
+		{[...]float32{1, 2}, nil, "max:3", "", nil},
+		{[...]int{1, 2, 3}, nil, "max:3", "", nil},
+		{[...]float64{1, 2, 3, 4, 5}, nil, "max:3", "max check failed: len 5 is more than 3", ErrCheckFailed},
+
+		{func() {}, nil, "min:2", "min check failed: reflect: call of reflect.Value.Len on func Value", ErrCheckFailed},
+		{int(1), nil, "eq:foo", `eq check failed: strconv.Atoi: parsing "foo": invalid syntax`, ErrCheckFailed},
+		{uint(1), nil, "ne:foo", `ne check failed: strconv.Atoi: parsing "foo": invalid syntax`, ErrCheckFailed},
+		{float32(1), nil, "min:foo", `min check failed: strconv.ParseFloat: parsing "foo": invalid syntax`, ErrCheckFailed},
+		{float64(1), nil, "max:foo", `max check failed: strconv.ParseFloat: parsing "foo": invalid syntax`, ErrCheckFailed},
+		{"", nil, "ne:foo", `ne check failed: strconv.Atoi: parsing "foo": invalid syntax`, ErrCheckFailed},
+
 		{struct {
 			Foo string
 			Bar int
@@ -171,11 +248,11 @@ func TestValidate(t *testing.T) { //nolint:funlen // ok
 		{struct {
 			Foo string `json:",omitempty" validate:"    bogus   ,   required   "`
 			Bar int
-		}{}, nil, "", "Foo: invalid checker: bogus", ErrInvalidChecker},
+		}{}, nil, "", "Foo: invalid checker bogus", ErrInvalidChecker},
 		{struct {
 			Foo string `json:",omitempty" validate:"    required,   bogus          "`
 			Bar int
-		}{Foo: "foo"}, nil, "", "Foo: invalid checker: bogus", ErrInvalidChecker},
+		}{Foo: "foo"}, nil, "", "Foo: invalid checker bogus", ErrInvalidChecker},
 		{struct {
 			Foo *string `json:",omitempty" validate:"required"`
 			Bar int
@@ -217,23 +294,23 @@ func TestValidate(t *testing.T) { //nolint:funlen // ok
 		{struct {
 			Foo string `json:",omitempty" validate:"required,:"`
 			Bar int
-		}{Foo: _uuid}, nil, "", "Foo: invalid checker: :", ErrInvalidChecker},
+		}{Foo: _uuid}, nil, "", "Foo: invalid checker :", ErrInvalidChecker},
 		{struct {
 			Foo string `json:",omitempty" validate:"required,foo:"`
 			Bar int
-		}{Foo: _uuid}, nil, "", "Foo: invalid checker: foo:", ErrInvalidChecker},
+		}{Foo: _uuid}, nil, "", "Foo: invalid checker foo:", ErrInvalidChecker},
 		{struct {
 			Foo string `json:",omitempty" validate:"required,:foo"`
 			Bar int
-		}{Foo: _uuid}, nil, "", "Foo: invalid checker: :foo", ErrInvalidChecker},
+		}{Foo: _uuid}, nil, "", "Foo: invalid checker :foo", ErrInvalidChecker},
 		{struct {
 			Foo string `json:",omitempty" validate:"required,foo:bar"`
 			Bar int
-		}{Foo: _uuid}, nil, "", "Foo: invalid checker: foo:bar", ErrInvalidChecker},
+		}{Foo: _uuid}, nil, "", "Foo: invalid checker foo:bar", ErrInvalidChecker},
 		{struct {
 			Foo string `json:",omitempty" validate:"required,regex:[A-"`
 			Bar int
-		}{Foo: _uuid}, nil, "", "Foo: invalid checker: regex:[A-: error parsing regexp: missing closing ]: `[A-`", ErrInvalidChecker},
+		}{Foo: _uuid}, nil, "", "Foo: invalid checker regex:[A-: error parsing regexp: missing closing ]: `[A-`", ErrInvalidChecker},
 		{
 			struct {
 				Foo    string `json:",omitempty" validate:"required"`

@@ -139,7 +139,7 @@ linters-settings:
       - T
     ignore-decls:
       - i int
-      - x reflect.Value
+      - v reflect.Value
   wsl:
     severity: warning
     strict-append: true

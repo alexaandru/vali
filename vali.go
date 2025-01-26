@@ -14,6 +14,7 @@ package vali
 import (
 	"fmt"
 	"reflect"
+	"slices"
 	"strings"
 	"sync"
 )
@@ -42,6 +43,11 @@ type (
 		CheckSep,
 		CheckArgSep string
 
+		// Checks in this list WILL be checked against the zero value.
+		// By default, checks are not run against the zero value, unless they
+		// are part of this list.
+		DontSkipZeroChecks []string
+
 		sync.RWMutex
 	}
 )
@@ -51,7 +57,12 @@ const DefaultValidatorTagName = "validate"
 
 // DefaultValidator allows using the library directly, without creating
 // a validator, similar to how flags and net/http packages work.
-var DefaultValidator *Validator
+var DefaultValidator = New()
+
+// DefaultDontSkipZero holds the default list of checks that do NOT skip
+// the zero value. By default, checks are skipping it, unless they are
+// in this list.
+var DefaultDontSkipZero = []string{"required", "eq", "ne", "min", "max"}
 
 // New creates a new [Validator], initialized with the default checkers
 // and ready to be used. You can optionally pass a struct tag name or
@@ -64,14 +75,19 @@ func New(opts ...string) (v *Validator) {
 
 	v = &Validator{
 		CheckSep: ",", CheckArgSep: ":",
-		tag:           tag,
-		checkers:      map[string]Checker{},
-		checkerMakers: map[string]CheckerMaker{},
+		tag:                tag,
+		checkers:           map[string]Checker{},
+		checkerMakers:      map[string]CheckerMaker{},
+		DontSkipZeroChecks: DefaultDontSkipZero,
 	}
 
 	v.RegisterChecker("required", required)
 	v.RegisterChecker("uuid", uuid)
 	v.RegisterCheckerMaker("regex", Regex)
+	v.RegisterCheckerMaker("eq", Eq)
+	v.RegisterCheckerMaker("ne", Ne)
+	v.RegisterCheckerMaker("min", Min)
+	v.RegisterCheckerMaker("max", Max)
 	v.RegisterCheckerMaker("one_of", oneOf)
 
 	return
@@ -114,48 +130,48 @@ func Validate(val any, tags ...string) error {
 // It will validate all the fields that have the `s.tag` present, recursively.
 func (v *Validator) Validate(val any, tags ...string) (err error) {
 	tag := strings.Join(tags, v.CheckSep)
-	x := reflect.ValueOf(val)
+	ref := reflect.ValueOf(val)
 
-	return v.validate(x, tag)
+	return v.validate(ref, tag)
 }
 
-func (v *Validator) validate(x reflect.Value, tag string, scope ...string) (err error) {
-	for x.Kind() == reflect.Ptr {
-		x = x.Elem()
+func (v *Validator) validate(val reflect.Value, tag string, scope ...string) (err error) {
+	for val.Kind() == reflect.Ptr {
+		val = val.Elem()
 	}
 
 	if tag != "" {
-		if err = v.validateScalar(x, tag, scope...); err != nil {
+		if err = v.validateScalar(val, tag, scope...); err != nil {
 			return
 		}
 	}
 
-	if x.Kind() != reflect.Struct {
+	if val.Kind() != reflect.Struct {
 		return
 	}
 
-	for i := range x.NumField() {
-		xType := x.Type().Field(i)
-		if !xType.IsExported() {
+	for i := range val.NumField() {
+		iType := val.Type().Field(i)
+		if !iType.IsExported() {
 			continue
 		}
 
-		reflTag := xType.Tag
+		reflTag := iType.Tag
 		tag = strings.TrimSpace(reflTag.Get(v.tag))
 
-		y := x.Field(i)
-		for y.Kind() == reflect.Ptr {
-			y = y.Elem()
+		iVal := val.Field(i)
+		for iVal.Kind() == reflect.Ptr {
+			iVal = iVal.Elem()
 		}
 
-		if tag == "" && y.Kind() != reflect.Struct {
+		if tag == "" && iVal.Kind() != reflect.Struct {
 			continue
 		}
 
-		yName := x.Type().Field(i).Name
-		localScope := append(scope, yName) //nolint:gocritic // ok
+		iName := val.Type().Field(i).Name
+		localScope := append(scope, iName) //nolint:gocritic // ok
 
-		err = v.validate(y, tag, localScope...)
+		err = v.validate(iVal, tag, localScope...)
 		if err != nil {
 			return
 		}
@@ -164,7 +180,7 @@ func (v *Validator) validate(x reflect.Value, tag string, scope ...string) (err 
 	return
 }
 
-func (v *Validator) validateScalar(x reflect.Value, tag string, scope ...string) (err error) {
+func (v *Validator) validateScalar(val reflect.Value, tag string, scope ...string) (err error) {
 	defer func() {
 		if err != nil && len(scope) > 0 {
 			err = fmt.Errorf("%s: %w", strings.Join(scope, "."), err)
@@ -177,13 +193,17 @@ func (v *Validator) validateScalar(x reflect.Value, tag string, scope ...string)
 	}
 
 	for i, ck := range checks {
-		if err = ck(x); err != nil {
-			name := chkNames[i]
-			if strings.Contains(name, v.CheckArgSep) {
-				nx := strings.Split(name, v.CheckArgSep)
-				name = nx[0]
-			}
+		name := chkNames[i]
+		if strings.Contains(name, v.CheckArgSep) {
+			nx := strings.Split(name, v.CheckArgSep)
+			name = nx[0]
+		}
 
+		if isZero(val) && !slices.Contains(v.DontSkipZeroChecks, name) {
+			continue
+		}
+
+		if err = ck(val); err != nil {
 			return fmt.Errorf("%s %w: %w", name, ErrCheckFailed, err)
 		}
 	}
@@ -209,7 +229,7 @@ func (v *Validator) parse(tag string) (cx []Checker, cxNames []string, err error
 		case strings.Contains(tag, v.CheckArgSep):
 			tagz := strings.Split(tag, v.CheckArgSep)
 			if len(tagz) != 2 || tagz[0] == "" || tagz[1] == "" {
-				return nil, nil, fmt.Errorf("%w: %s", ErrInvalidChecker, tag)
+				return nil, nil, fmt.Errorf("%w %s", ErrInvalidChecker, tag)
 			}
 
 			v.RLock()
@@ -217,19 +237,19 @@ func (v *Validator) parse(tag string) (cx []Checker, cxNames []string, err error
 			v.RUnlock()
 
 			if cm == nil {
-				return nil, nil, fmt.Errorf("%w: %s", ErrInvalidChecker, tag)
+				return nil, nil, fmt.Errorf("%w %s", ErrInvalidChecker, tag)
 			}
 
 			c, err2 := cm(tagz[1])
 			if err2 != nil {
-				return nil, nil, fmt.Errorf("%w: %s: %w", ErrInvalidChecker, tag, err2)
+				return nil, nil, fmt.Errorf("%w %s: %w", ErrInvalidChecker, tag, err2)
 			}
 
 			v.RegisterChecker(tag, c)
 			cx = append(cx, c)
 			cxNames = append(cxNames, tagz[0])
 		default:
-			return nil, nil, fmt.Errorf("%w: %s", ErrInvalidChecker, tag)
+			return nil, nil, fmt.Errorf("%w %s", ErrInvalidChecker, tag)
 		}
 	}
 
