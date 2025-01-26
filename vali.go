@@ -25,9 +25,9 @@ type (
 	// CheckerMaker is a way to construct checkers with arguments (i.e. "regex:^[A-Z]$").
 	CheckerMaker func(args string) (Checker, error)
 
-	// ValidationSet holds the validation context.
+	// Validator holds the validation context.
 	// You can create your own or use the default one provided by this library.
-	ValidationSet struct {
+	Validator struct {
 		checkers      map[string]Checker
 		checkerMakers map[string]CheckerMaker
 		tag           string
@@ -46,24 +46,33 @@ type (
 	}
 )
 
+// DefaultValidatorTagName holds the default struct tag name.
+const DefaultValidatorTagName = "validate"
+
 // DefaultValidator allows using the library directly, without creating
 // a validator, similar to how flags and net/http packages work.
-var DefaultValidator *ValidationSet
+var DefaultValidator *Validator
 
-// NewValidator creates a new [ValidationSet], initialized with
-// the default checkers and ready to be used.
-func NewValidator(tag string) (s *ValidationSet) {
-	s = &ValidationSet{
+// New creates a new [Validator], initialized with the default checkers
+// and ready to be used. You can optionally pass a struct tag name or
+// use the [DefaultValidatorTagName].
+func New(opts ...string) (v *Validator) {
+	tag := DefaultValidatorTagName
+	if len(opts) > 0 {
+		tag = opts[0]
+	}
+
+	v = &Validator{
 		CheckSep: ",", CheckArgSep: ":",
 		tag:           tag,
 		checkers:      map[string]Checker{},
 		checkerMakers: map[string]CheckerMaker{},
 	}
 
-	s.RegisterChecker("required", required)
-	s.RegisterChecker("uuid", uuid)
-	s.RegisterCheckerMaker("regex", Regex)
-	s.RegisterCheckerMaker("one_of", oneOf)
+	v.RegisterChecker("required", required)
+	v.RegisterChecker("uuid", uuid)
+	v.RegisterCheckerMaker("regex", Regex)
+	v.RegisterCheckerMaker("one_of", oneOf)
 
 	return
 }
@@ -73,12 +82,12 @@ func RegisterChecker(name string, fn Checker) {
 	DefaultValidator.RegisterChecker(name, fn)
 }
 
-// RegisterChecker registers a new [Checker] to the [ValidationSet].
-func (s *ValidationSet) RegisterChecker(name string, fn Checker) {
-	s.Lock()
-	defer s.Unlock()
+// RegisterChecker registers a new [Checker] to the [Validator].
+func (v *Validator) RegisterChecker(name string, fn Checker) {
+	v.Lock()
+	defer v.Unlock()
 
-	s.checkers[name] = fn
+	v.checkers[name] = fn
 }
 
 // RegisterCheckerMaker registers a new [CheckerMaker] to the [DefaultValidator].
@@ -86,31 +95,43 @@ func RegisterCheckerMaker(name string, fn CheckerMaker) {
 	DefaultValidator.RegisterCheckerMaker(name, fn)
 }
 
-// RegisterCheckerMaker registers a new [CheckerMaker] to the [ValidationSet].
-func (s *ValidationSet) RegisterCheckerMaker(name string, fn CheckerMaker) {
-	s.Lock()
-	defer s.Unlock()
+// RegisterCheckerMaker registers a new [CheckerMaker] to the [Validator].
+func (v *Validator) RegisterCheckerMaker(name string, fn CheckerMaker) {
+	v.Lock()
+	defer v.Unlock()
 
-	s.checkerMakers[name] = fn
+	v.checkerMakers[name] = fn
 }
 
 // Validate validates v against [DefaultValidator].
-// See [ValidationSet.Validate] for details.
-func Validate(v any, scope ...string) error {
-	return DefaultValidator.Validate(v, scope...)
+// See [Validator.Validate] for details.
+func Validate(val any, tags ...string) error {
+	return DefaultValidator.Validate(val, tags...)
 }
 
 // Validate validates a struct. The passed value v can be a value or
 // a pointer (or pointer to a pointer, although there's no point to do that in Go).
 // It will validate all the fields that have the `s.tag` present, recursively.
-func (s *ValidationSet) Validate(v any, scope ...string) (err error) {
-	x := reflect.ValueOf(v)
+func (v *Validator) Validate(val any, tags ...string) (err error) {
+	tag := strings.Join(tags, v.CheckSep)
+	x := reflect.ValueOf(val)
+
+	return v.validate(x, tag)
+}
+
+func (v *Validator) validate(x reflect.Value, tag string, scope ...string) (err error) {
 	for x.Kind() == reflect.Ptr {
 		x = x.Elem()
 	}
 
+	if tag != "" {
+		if err = v.validateScalar(x, tag, scope...); err != nil {
+			return
+		}
+	}
+
 	if x.Kind() != reflect.Struct {
-		return ErrNotAStruct
+		return
 	}
 
 	for i := range x.NumField() {
@@ -120,7 +141,7 @@ func (s *ValidationSet) Validate(v any, scope ...string) (err error) {
 		}
 
 		reflTag := xType.Tag
-		tag := strings.TrimSpace(reflTag.Get(s.tag))
+		tag = strings.TrimSpace(reflTag.Get(v.tag))
 
 		y := x.Field(i)
 		for y.Kind() == reflect.Ptr {
@@ -134,12 +155,7 @@ func (s *ValidationSet) Validate(v any, scope ...string) (err error) {
 		yName := x.Type().Field(i).Name
 		localScope := append(scope, yName) //nolint:gocritic // ok
 
-		if y.Kind() == reflect.Struct {
-			err = s.Validate(y.Interface(), localScope...)
-		} else {
-			err = s.validateScalar(y, tag, localScope...)
-		}
-
+		err = v.validate(y, tag, localScope...)
 		if err != nil {
 			return
 		}
@@ -148,23 +164,23 @@ func (s *ValidationSet) Validate(v any, scope ...string) (err error) {
 	return
 }
 
-func (s *ValidationSet) validateScalar(v reflect.Value, tag string, scope ...string) (err error) {
+func (v *Validator) validateScalar(x reflect.Value, tag string, scope ...string) (err error) {
 	defer func() {
-		if err != nil {
+		if err != nil && len(scope) > 0 {
 			err = fmt.Errorf("%s: %w", strings.Join(scope, "."), err)
 		}
 	}()
 
-	checks, chkNames, err := s.parse(tag)
+	checks, chkNames, err := v.parse(tag)
 	if err != nil {
 		return
 	}
 
 	for i, ck := range checks {
-		if err = ck(v); err != nil {
+		if err = ck(x); err != nil {
 			name := chkNames[i]
-			if strings.Contains(name, s.CheckArgSep) {
-				nx := strings.Split(name, s.CheckArgSep)
+			if strings.Contains(name, v.CheckArgSep) {
+				nx := strings.Split(name, v.CheckArgSep)
 				name = nx[0]
 			}
 
@@ -175,30 +191,30 @@ func (s *ValidationSet) validateScalar(v reflect.Value, tag string, scope ...str
 	return
 }
 
-func (s *ValidationSet) parse(tag string) (cx []Checker, cxNames []string, err error) {
-	for _, tag := range strings.Split(tag, s.CheckSep) {
+func (v *Validator) parse(tag string) (cx []Checker, cxNames []string, err error) {
+	for _, tag := range strings.Split(tag, v.CheckSep) {
 		tag = strings.TrimSpace(tag)
 		if tag == "" {
 			continue
 		}
 
-		s.RLock()
-		v := s.checkers[tag]
-		s.RUnlock()
+		v.RLock()
+		ck := v.checkers[tag]
+		v.RUnlock()
 
 		switch {
-		case v != nil:
-			cx = append(cx, v)
+		case ck != nil:
+			cx = append(cx, ck)
 			cxNames = append(cxNames, tag)
-		case strings.Contains(tag, s.CheckArgSep):
-			tagz := strings.Split(tag, s.CheckArgSep)
+		case strings.Contains(tag, v.CheckArgSep):
+			tagz := strings.Split(tag, v.CheckArgSep)
 			if len(tagz) != 2 || tagz[0] == "" || tagz[1] == "" {
 				return nil, nil, fmt.Errorf("%w: %s", ErrInvalidChecker, tag)
 			}
 
-			s.RLock()
-			cm := s.checkerMakers[tagz[0]]
-			s.RUnlock()
+			v.RLock()
+			cm := v.checkerMakers[tagz[0]]
+			v.RUnlock()
 
 			if cm == nil {
 				return nil, nil, fmt.Errorf("%w: %s", ErrInvalidChecker, tag)
@@ -209,7 +225,7 @@ func (s *ValidationSet) parse(tag string) (cx []Checker, cxNames []string, err e
 				return nil, nil, fmt.Errorf("%w: %s: %w", ErrInvalidChecker, tag, err2)
 			}
 
-			s.RegisterChecker(tag, c)
+			v.RegisterChecker(tag, c)
 			cx = append(cx, c)
 			cxNames = append(cxNames, tagz[0])
 		default:

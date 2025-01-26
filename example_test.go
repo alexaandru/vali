@@ -6,7 +6,7 @@ import (
 	"github.com/alexaandru/vali"
 )
 
-func ExampleValidationSet_Validate() {
+func ExampleValidator_Validate() {
 	s := struct {
 		Foo struct {
 			Bar string `validate:"required"`
@@ -17,7 +17,7 @@ func ExampleValidationSet_Validate() {
 	// Output: Foo.Bar: required check failed: value missing
 }
 
-func ExampleValidationSet_Validate_custom_checker() {
+func ExampleValidator_Validate_custom_checker() {
 	var phone string
 
 	s := struct {
@@ -46,7 +46,7 @@ func ExampleValidationSet_Validate_custom_checker() {
 	// <nil>
 }
 
-func ExampleValidationSet_Validate_unexported() {
+func ExampleValidator_Validate_unexported() {
 	s := struct {
 		Foo struct {
 			bar string `validate:"required,uuid"`

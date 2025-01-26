@@ -20,7 +20,7 @@ an easy way to add your own checks, see the [example](example_test.go) and
 [vali_test.go](vali_test.go) files.
 
 You can also change the struct tag name being used (by creating
-a new `ValidationSet`) and a few other bits, see `ValidationSet` type
+a new `Validator`) and a few other bits, see `Validator` type
 definition.
 
 It is pointer-insensitive, will always validate the value

@@ -10,7 +10,6 @@ import (
 // Possible errors.
 var (
 	ErrCheckFailed    = errors.New("check failed")
-	ErrNotAStruct     = errors.New("not a struct")
 	ErrRequired       = errors.New("value missing")
 	ErrInvalidChecker = errors.New("invalid checker")
 )
@@ -68,5 +67,5 @@ func init() {
 	// NOTE: It is well covered with tests, the regexp is fine.
 	// If I put an `if` here, it can never get covered :-).
 	uuid, _ = Regex(`(?i)^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$`) //nolint:errcheck // ok
-	DefaultValidator = NewValidator("validate")
+	DefaultValidator = New()
 }

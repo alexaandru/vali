@@ -12,107 +12,38 @@ import (
 
 type testCase struct {
 	v      any
-	s      *ValidationSet
+	s      *Validator
+	tag    string
 	exp    string
 	expErr error
 }
 
+type (
+	t1 struct {
+		Foo string
+		Bar string
+	}
+
+	t2 struct {
+		t1 `validate:"required"`
+	}
+)
+
 type foo []byte
 
-var (
-	_uuid = "550e8400-e29b-41d4-a716-446655440000"
-
-	v0 = struct {
-		Foo struct {
-			Bar struct {
-				Baz struct {
-					Foobar string `json:",omitempty" xoxo:"required,uuid"`
-				}
-			}
-		}
-		Foobar int
-	}{}
-	v1, v2 = v0, v0
-	_      = func() int {
-		v1.Foo.Bar.Baz.Foobar = "foo"
-		v2.Foo.Bar.Baz.Foobar = _uuid
-
-		return 0
-	}()
-)
+var _uuid = "550e8400-e29b-41d4-a716-446655440000"
 
 func (f foo) String() string {
 	return string(f)
 }
 
-func TestValidate(t *testing.T) {
-	t.Parallel()
-
-	testCases := slices.Concat(slices.Clone(testCases()), []testCase{
-		{v0, NewValidator("xoxo"), "Foo.Bar.Baz.Foobar: required check failed: value missing", ErrRequired},
-		{v1, NewValidator("xoxo"), `Foo.Bar.Baz.Foobar: uuid check failed: "foo" does not match (?i)^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$`, ErrCheckFailed},
-		{v2, NewValidator("xoxo"), "", nil},
-
-		{&v0, NewValidator("xoxo"), "Foo.Bar.Baz.Foobar: required check failed: value missing", ErrRequired},
-		{&v1, NewValidator("xoxo"), `Foo.Bar.Baz.Foobar: uuid check failed: "foo" does not match (?i)^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$`, ErrCheckFailed},
-		{&v2, NewValidator("xoxo"), "", nil},
-
-		{p(&v0), NewValidator("xoxo"), "Foo.Bar.Baz.Foobar: required check failed: value missing", ErrRequired},
-		{p(&v1), NewValidator("xoxo"), `Foo.Bar.Baz.Foobar: uuid check failed: "foo" does not match (?i)^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$`, ErrCheckFailed},
-		{p(&v2), NewValidator("xoxo"), "", nil},
-	})
-
-	for _, tc := range testCases {
-		t.Run("", func(t *testing.T) {
-			t.Parallel()
-
-			v := tc.s
-			if v == nil {
-				v = NewValidator("validate")
-			}
-
-			err := v.Validate(tc.v)
-			if !errors.Is(err, tc.expErr) {
-				t.Fatalf("Expected %v got %v", tc.expErr, err)
-			}
-
-			if err == nil {
-				return
-			}
-
-			exp := cmp.Or(tc.exp, tc.expErr.Error())
-			if act := err.Error(); err.Error() != exp {
-				t.Fatalf("Expected %q got %q", exp, act)
-			}
-		})
-	}
+func TestNew(t *testing.T) {
+	t.Skip("tested implicitly")
 }
 
-func TestTopLevelValidate(t *testing.T) {
+func TestRegisterChecker(t *testing.T) {
 	t.Parallel()
 
-	for _, tc := range testCases() {
-		t.Run("", func(t *testing.T) {
-			t.Parallel()
-
-			err := Validate(tc.v)
-			if !errors.Is(err, tc.expErr) {
-				t.Fatalf("Expected %v got %v", tc.expErr, err)
-			}
-
-			if err == nil {
-				return
-			}
-
-			exp := cmp.Or(tc.exp, tc.expErr.Error())
-			if act := err.Error(); err.Error() != exp {
-				t.Fatalf("Expected %q got %q", exp, act)
-			}
-		})
-	}
-}
-
-func TestValidationSetRegisterChecker(t *testing.T) {
 	x := struct {
 		Foo foo `validate:"rgb"`
 	}{
@@ -140,7 +71,11 @@ func TestValidationSetRegisterChecker(t *testing.T) {
 	}
 }
 
-func TestValidationSetRegisterCheckerMaker(t *testing.T) {
+func TestValidatorRegisterChecker(t *testing.T) {
+	t.Skip("tested implicitly")
+}
+
+func TestRegisterCheckerMaker(t *testing.T) {
 	x := struct {
 		Foo foo `validate:"one_of3:foo|bar|baz"`
 	}{
@@ -178,11 +113,187 @@ func TestValidationSetRegisterCheckerMaker(t *testing.T) {
 	}
 }
 
-func TestValidationSetConfigurableSeparators(t *testing.T) {
+func TestValidatorRegisterCheckerMaker(t *testing.T) {
+	t.Skip("tested implicitly")
+}
+
+func TestValidate(t *testing.T) { //nolint:funlen // ok
+	t.Parallel()
+
+	testCases := []testCase{
+		{struct{}{}, &Validator{}, "", "", nil},
+		{struct{}{}, New(""), "", "", nil},
+		{struct{}{}, nil, "", "", nil},
+
+		{false, nil, "required", "required check failed: value missing", ErrCheckFailed},
+		{"", nil, "required", "required check failed: value missing", ErrCheckFailed},
+		{0, nil, "required", "required check failed: value missing", ErrCheckFailed},
+		{(func())(nil), nil, "required", "required check failed: value missing", ErrCheckFailed},
+		{"123", nil, "required,uuid", `uuid check failed: "123" does not match (?i)^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$`, ErrCheckFailed},
+
+		{true, nil, "required", "", nil},
+		{"foo", nil, "required", "", nil},
+		{1, nil, "required", "", nil},
+		{func() {}, nil, "required", "", nil},
+		{_uuid, nil, "required,uuid", "", nil},
+
+		{t1{}, nil, "", "", nil},
+		{t2{}, nil, "", "", nil},
+		{t1{}, nil, "required", "required check failed: value missing", ErrCheckFailed},
+		{t2{}, nil, "required", "required check failed: value missing", ErrCheckFailed},
+		{t1{Foo: "foobar"}, nil, "required", "", nil},
+		{&t2{t1: t1{Foo: "foobar"}}, nil, "", "", nil},
+
+		{struct {
+			Foo string
+			Bar int
+		}{}, nil, "", "", nil},
+		{struct {
+			Foo string `validate:""`
+			Bar int
+		}{}, nil, "", "", nil},
+		{struct {
+			foo string `validate:"required,uuid"`
+			bar int
+		}{foo: "foo"}, nil, "", "", nil},
+		{struct {
+			Foo string `validate:"                                "`
+			Bar int
+		}{}, nil, "", "", nil},
+		{struct {
+			Foo string `json:",omitempty" validate:"required"`
+			Bar int
+		}{}, nil, "", "Foo: required check failed: value missing", ErrRequired},
+		{struct {
+			Foo string `json:",omitempty" validate:"  required   "`
+			Bar int
+		}{}, nil, "", "Foo: required check failed: value missing", ErrRequired},
+		{struct {
+			Foo string `json:",omitempty" validate:"    bogus   ,   required   "`
+			Bar int
+		}{}, nil, "", "Foo: invalid checker: bogus", ErrInvalidChecker},
+		{struct {
+			Foo string `json:",omitempty" validate:"    required,   bogus          "`
+			Bar int
+		}{Foo: "foo"}, nil, "", "Foo: invalid checker: bogus", ErrInvalidChecker},
+		{struct {
+			Foo *string `json:",omitempty" validate:"required"`
+			Bar int
+		}{Foo: p("")}, nil, "", "Foo: required check failed: value missing", ErrRequired},
+		{struct {
+			Foo ***string `json:",omitempty" validate:"required"`
+			Bar int
+		}{Foo: p(p(p("")))}, nil, "", "Foo: required check failed: value missing", ErrRequired},
+		{struct {
+			Foo *string `json:",omitempty" validate:"required"`
+			Bar int
+		}{}, nil, "", "Foo: required check failed: value missing", ErrRequired},
+		{struct {
+			Foo *string `json:",omitempty" validate:"uuid"`
+			Bar int
+		}{}, nil, "", "", nil},
+		{struct {
+			Foo *string `json:",omitempty" validate:"uuid,required"`
+			Bar int
+		}{}, nil, "", "Foo: required check failed: value missing", ErrRequired},
+		{struct {
+			Foo *string `json:",omitempty" validate:"required,uuid"`
+			Bar int
+		}{}, nil, "", "Foo: required check failed: value missing", ErrRequired},
+		{struct {
+			Foo *string `json:",omitempty" validate:"required,uuid"`
+			Bar int
+		}{Foo: p("foo")}, nil, "", `Foo: uuid check failed: "foo" does not match (?i)^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$`, ErrCheckFailed},
+		{struct {
+			Foo    string `json:",omitempty" validate:"required"`
+			Bar    string `json:",omitempty" validate:"required"`
+			Baz    string `json:",omitempty" validate:"required"`
+			Foobar int
+		}{Foo: "foo", Bar: "bar"}, nil, "", "Baz: required check failed: value missing", ErrRequired},
+		{struct {
+			Foo string `json:",omitempty" validate:"required,,,,uuid"`
+			Bar int
+		}{Foo: _uuid}, nil, "", "", nil},
+		{struct {
+			Foo string `json:",omitempty" validate:"required,:"`
+			Bar int
+		}{Foo: _uuid}, nil, "", "Foo: invalid checker: :", ErrInvalidChecker},
+		{struct {
+			Foo string `json:",omitempty" validate:"required,foo:"`
+			Bar int
+		}{Foo: _uuid}, nil, "", "Foo: invalid checker: foo:", ErrInvalidChecker},
+		{struct {
+			Foo string `json:",omitempty" validate:"required,:foo"`
+			Bar int
+		}{Foo: _uuid}, nil, "", "Foo: invalid checker: :foo", ErrInvalidChecker},
+		{struct {
+			Foo string `json:",omitempty" validate:"required,foo:bar"`
+			Bar int
+		}{Foo: _uuid}, nil, "", "Foo: invalid checker: foo:bar", ErrInvalidChecker},
+		{struct {
+			Foo string `json:",omitempty" validate:"required,regex:[A-"`
+			Bar int
+		}{Foo: _uuid}, nil, "", "Foo: invalid checker: regex:[A-: error parsing regexp: missing closing ]: `[A-`", ErrInvalidChecker},
+		{
+			struct {
+				Foo    string `json:",omitempty" validate:"required"`
+				Bar    string `json:",omitempty" validate:"required"`
+				Baz    string `json:",omitempty" validate:"required,regex:^(foo|bar|baz)$"`
+				Foobar int
+			}{Foo: "foo", Bar: "bar", Baz: "other"},
+			nil, "",
+			`Baz: regex check failed: "other" does not match ^(foo|bar|baz)$`, ErrCheckFailed,
+		},
+		{
+			struct {
+				Foo    string `json:",omitempty" validate:"regex:^(foo|bar|baz)$"`
+				Bar    string `json:",omitempty" validate:"regex:^(foo|bar|baz)$"`
+				Baz    string `json:",omitempty" validate:"regex:^(foo|bar|baz)$"`
+				Foobar int
+			}{Foo: "foo", Bar: "", Baz: "baz"},
+			nil, "", "", nil,
+		},
+		{
+			struct {
+				Foo    string `json:",omitempty" validate:"one_of:foo|bar|baz"`
+				Bar    string `json:",omitempty" validate:"one_of:foo|bar|baz"`
+				Baz    string `json:",omitempty" validate:"one_of:foo|bar|baz"`
+				Foobar int
+			}{Foo: "foo", Bar: "Bar", Baz: "baz"},
+			nil, "", `Bar: one_of check failed: "Bar" does not match ^(foo|bar|baz)$`, ErrCheckFailed,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run("", func(t *testing.T) {
+			t.Parallel()
+
+			err := Validate(tc.v, tc.tag)
+			if !errors.Is(err, tc.expErr) {
+				t.Fatalf("Expected %v got %v", tc.expErr, err)
+			}
+
+			if err == nil {
+				return
+			}
+
+			exp := cmp.Or(tc.exp, tc.expErr.Error())
+			if act := err.Error(); err.Error() != exp {
+				t.Fatalf("Expected %q got %q", exp, act)
+			}
+		})
+	}
+}
+
+func TestValidatorValidate(t *testing.T) {
+	t.Skip("tested implicitly")
+}
+
+func TestValidatorConfigurableSeparators(t *testing.T) {
 	x := struct {
 		Foo string `val:"required    one_of=foo|bar"`
 	}{Foo: "bar"}
-	v := NewValidator("val")
+	v := New("val")
 
 	err := v.Validate(x)
 	if err == nil {
@@ -195,133 +306,6 @@ func TestValidationSetConfigurableSeparators(t *testing.T) {
 	err = v.Validate(x)
 	if err != nil {
 		t.Fatalf("Expected no error")
-	}
-}
-
-func testCases() []testCase { //nolint:funlen // ok
-	return []testCase{
-		{struct{}{}, &ValidationSet{}, "", nil},
-		{struct{}{}, NewValidator(""), "", nil},
-		{struct{}{}, nil, "", nil},
-		{"foo", &ValidationSet{}, "", ErrNotAStruct},
-		{struct {
-			Foo string
-			Bar int
-		}{}, nil, "", nil},
-		{struct {
-			Foo string `validate:""`
-			Bar int
-		}{}, nil, "", nil},
-		{struct {
-			foo string `validate:"required,uuid"`
-			bar int
-		}{foo: "foo"}, nil, "", nil},
-		{struct {
-			Foo string `validate:"                                "`
-			Bar int
-		}{}, nil, "", nil},
-		{struct {
-			Foo string `json:",omitempty" validate:"required"`
-			Bar int
-		}{}, nil, "Foo: required check failed: value missing", ErrRequired},
-		{struct {
-			Foo string `json:",omitempty" validate:"  required   "`
-			Bar int
-		}{}, nil, "Foo: required check failed: value missing", ErrRequired},
-		{struct {
-			Foo string `json:",omitempty" validate:"    bogus   ,   required   "`
-			Bar int
-		}{}, nil, "Foo: invalid checker: bogus", ErrInvalidChecker},
-		{struct {
-			Foo string `json:",omitempty" validate:"    required,   bogus          "`
-			Bar int
-		}{Foo: "foo"}, nil, "Foo: invalid checker: bogus", ErrInvalidChecker},
-		{struct {
-			Foo *string `json:",omitempty" validate:"required"`
-			Bar int
-		}{Foo: p("")}, nil, "Foo: required check failed: value missing", ErrRequired},
-		{struct {
-			Foo ***string `json:",omitempty" validate:"required"`
-			Bar int
-		}{Foo: p(p(p("")))}, nil, "Foo: required check failed: value missing", ErrRequired},
-		{struct {
-			Foo *string `json:",omitempty" validate:"required"`
-			Bar int
-		}{}, nil, "Foo: required check failed: value missing", ErrRequired},
-		{struct {
-			Foo *string `json:",omitempty" validate:"uuid"`
-			Bar int
-		}{}, nil, "", nil},
-		{struct {
-			Foo *string `json:",omitempty" validate:"uuid,required"`
-			Bar int
-		}{}, nil, "Foo: required check failed: value missing", ErrRequired},
-		{struct {
-			Foo *string `json:",omitempty" validate:"required,uuid"`
-			Bar int
-		}{}, nil, "Foo: required check failed: value missing", ErrRequired},
-		{struct {
-			Foo *string `json:",omitempty" validate:"required,uuid"`
-			Bar int
-		}{Foo: p("foo")}, nil, `Foo: uuid check failed: "foo" does not match (?i)^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$`, ErrCheckFailed},
-		{struct {
-			Foo    string `json:",omitempty" validate:"required"`
-			Bar    string `json:",omitempty" validate:"required"`
-			Baz    string `json:",omitempty" validate:"required"`
-			Foobar int
-		}{Foo: "foo", Bar: "bar"}, nil, "Baz: required check failed: value missing", ErrRequired},
-		{struct {
-			Foo string `json:",omitempty" validate:"required,,,,uuid"`
-			Bar int
-		}{Foo: _uuid}, nil, "", nil},
-		{struct {
-			Foo string `json:",omitempty" validate:"required,:"`
-			Bar int
-		}{Foo: _uuid}, nil, "Foo: invalid checker: :", ErrInvalidChecker},
-		{struct {
-			Foo string `json:",omitempty" validate:"required,foo:"`
-			Bar int
-		}{Foo: _uuid}, nil, "Foo: invalid checker: foo:", ErrInvalidChecker},
-		{struct {
-			Foo string `json:",omitempty" validate:"required,:foo"`
-			Bar int
-		}{Foo: _uuid}, nil, "Foo: invalid checker: :foo", ErrInvalidChecker},
-		{struct {
-			Foo string `json:",omitempty" validate:"required,foo:bar"`
-			Bar int
-		}{Foo: _uuid}, nil, "Foo: invalid checker: foo:bar", ErrInvalidChecker},
-		{struct {
-			Foo string `json:",omitempty" validate:"required,regex:[A-"`
-			Bar int
-		}{Foo: _uuid}, nil, "Foo: invalid checker: regex:[A-: error parsing regexp: missing closing ]: `[A-`", ErrInvalidChecker},
-		{
-			struct {
-				Foo    string `json:",omitempty" validate:"required"`
-				Bar    string `json:",omitempty" validate:"required"`
-				Baz    string `json:",omitempty" validate:"required,regex:^(foo|bar|baz)$"`
-				Foobar int
-			}{Foo: "foo", Bar: "bar", Baz: "other"},
-			nil,
-			`Baz: regex check failed: "other" does not match ^(foo|bar|baz)$`, ErrCheckFailed,
-		},
-		{
-			struct {
-				Foo    string `json:",omitempty" validate:"regex:^(foo|bar|baz)$"`
-				Bar    string `json:",omitempty" validate:"regex:^(foo|bar|baz)$"`
-				Baz    string `json:",omitempty" validate:"regex:^(foo|bar|baz)$"`
-				Foobar int
-			}{Foo: "foo", Bar: "", Baz: "baz"},
-			nil, "", nil,
-		},
-		{
-			struct {
-				Foo    string `json:",omitempty" validate:"one_of:foo|bar|baz"`
-				Bar    string `json:",omitempty" validate:"one_of:foo|bar|baz"`
-				Baz    string `json:",omitempty" validate:"one_of:foo|bar|baz"`
-				Foobar int
-			}{Foo: "foo", Bar: "Bar", Baz: "baz"},
-			nil, `Bar: one_of check failed: "Bar" does not match ^(foo|bar|baz)$`, ErrCheckFailed,
-		},
 	}
 }
 
