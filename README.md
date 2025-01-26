@@ -10,8 +10,13 @@ but there are recipes on how to make them ☺️.
 
 Rather than a large collection of checks (which ultimately
 imply many deps) **Vali** aims for the most things you could do
-with the least amount of checks. Even so, there are probably
-one or two too many checks already 🙃.
+with the least amount of checks.
+
+Non-goals:
+
+- `slice`/`map` dive;
+- cross field checks;
+- anything that needs a 3rd party dep.
 
 ## Description
 
@@ -37,13 +42,17 @@ tags to private fields will be ignored.
 
 ### Available checks:
 
-| Check          | Description                             |
-| -------------- | --------------------------------------- |
-| required       | must NOT be `IsZero()`                  |
-| regex:`<rx>`   | string representation must match `<rx>` |
-| one_of:a\|b\|c | must be one of {a,b,c}                  |
-| uuid           | 32 (dash separated) hexdigits           |
-| `<your_own>`   | you can easily add your own...          |
+| Check          | Description                    | Domain                                                                                                                                                                                                        |
+| -------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| required       | must NOT be `IsZero()`         | `any`                                                                                                                                                                                                         |
+| regex:`<rx>`   | must match `<rx>`              | `string`, `Stringer`                                                                                                                                                                                          |
+| eq:`<int>`     | must == `int`                  | [CanInt](https://pkg.go.dev/reflect#Value.CanInt), [CanUint](https://pkg.go.dev/reflect#Value.CanUint), [CanFloat](https://pkg.go.dev/reflect#Value.CanFloat), Can[Len](https://pkg.go.dev/reflect#Value.Len) |
+| ne:`<int>`     | must != `int`                  | same as `eq`                                                                                                                                                                                                  |
+| min:`<int>`    | must be >= `int`               | same as `eq`                                                                                                                                                                                                  |
+| max:`<int>`    | must be <= `int`               | same as `eq`                                                                                                                                                                                                  |
+| one_of:a\|b\|c | must be one of {a,b,c}         | same as `regex`                                                                                                                                                                                               |
+| uuid           | 32 (dash separated) hexdigits  | same as `regex`                                                                                                                                                                                               |
+| `<your_own>`   | you can easily add your own... | ...                                                                                                                                                                                                           |
 
 Multiple checks must be combined with a comma (,) extra space
 is forgiven, and empty checks are ignored i.e.:
