@@ -9,21 +9,12 @@
 **Vali**, a purposefully tiny validator. 🔋🔋🔋 are not included,
 but there are recipes on how to make them ☺️.
 
-Rather than a large collection of checks (which ultimately
-imply many deps) **Vali** aims for the most things you could do
-with the least amount of checks.
-
-Non-goals:
-
-- `slice`/`map` dive;
-- cross field checks;
-- anything that needs a 3rd party dep.
-
 ## Description
 
-It has a minimal [set of checks](#available-checks) and
-an easy way to add your own checks, see the [example](example_test.go) and
-[vali_test.go](vali_test.go) files.
+**Vali** aims for the most things you could do with the least amount
+of checks, therefore it has a minimal [set of checks](#available-checks)
+and an easy way to add your own checks, see the [example](example_test.go)
+and [vali_test.go](vali_test.go) files.
 
 You can also change the struct tag name being used (by creating
 a new `Validator`) and a few other bits, see `Validator` type
@@ -41,7 +32,13 @@ passes if `*Foo != ""` NOT if `Foo != nil`.
 Finally, it only validates public/exported fields. Adding validation
 tags to private fields will be ignored.
 
-### Available checks:
+Non-goals:
+
+- `slice`/`map` dive;
+- cross field checks;
+- anything that needs a 3rd party dep.
+
+## Available Checks
 
 | Check          | Description                    | Domain                                                                                                                                                                                                        |
 | -------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -60,9 +57,9 @@ is forgiven, and empty checks are ignored i.e.:
 `validate:"required,,,,  uuid   , one_of:foo|bar|baz"` is fine, albeit unclean.
 
 Both separators (between checks and between a check and its arguments)
-are configurable, whereas the separator between arguments themselves (the
-pipe symbol in the `a|b|c` example above) are up the each individual check,
-the library doesn't care it will just pass all the arguments as a string
+are configurable, whereas the separator between a check's arguments (the
+pipe symbol in the `a|b|c` example above) are up the each individual checker,
+the library doesn't care, it will just pass all the arguments as a string
 to the `Checker` func.
 
 ## Sample Usage
