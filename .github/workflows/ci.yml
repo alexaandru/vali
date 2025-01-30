@@ -18,6 +18,9 @@ jobs:
       - run: make test
         # https://docs.github.com/en/actions/using-workflows/workflow-commands-for-github-actions
       - run: echo "::notice title=Unit Test Coverage::$(go tool cover -func=unit.cov|tail -n1|tr -s "\t")"
+      - uses: coverallsapp/github-action@v2
+        with:
+          file: unit.cov
   lint:
     runs-on: ubuntu-24.04
     name: Lint
