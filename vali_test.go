@@ -124,7 +124,23 @@ func TestValidate(t *testing.T) { //nolint:funlen // ok
 		{struct{}{}, &Validator{}, "", "", nil},
 		{struct{}{}, New(""), "", "", nil},
 		{struct{}{}, nil, "", "", nil},
+		{struct{ S *string }{}, nil, "", "", nil},
+		{struct {
+			S **string `validate:""`
+		}{}, nil, "", "", nil},
+		{struct {
+			S ***string `validate:"uuid"`
+		}{}, nil, "", "", nil},
 
+		{struct {
+			S *string `validate:"required"`
+		}{}, nil, "", "S: required check failed: value missing", ErrCheckFailed},
+		{struct {
+			S **string `validate:"required"`
+		}{}, nil, "", "S: required check failed: value missing", ErrCheckFailed},
+		{struct {
+			S ***string `validate:"required"`
+		}{}, nil, "", "S: required check failed: value missing", ErrCheckFailed},
 		{false, nil, "required", "required check failed: value missing", ErrCheckFailed},
 		{"", nil, "required", "required check failed: value missing", ErrCheckFailed},
 		{0, nil, "required", "required check failed: value missing", ErrCheckFailed},
@@ -166,7 +182,7 @@ func TestValidate(t *testing.T) { //nolint:funlen // ok
 		{[]string{""}, nil, "eq:1", "", nil},
 		{map[int]string{0: ""}, nil, "eq:1", "", nil},
 
-		{0, nil, "min:foo", `min check failed: strconv.Atoi: parsing "foo": invalid syntax`, ErrCheckFailed},
+		{0, nil, "min:foo", `min check failed: strconv.ParseInt: parsing "foo": invalid syntax`, ErrCheckFailed},
 		{0, nil, "min:5", "min check failed: 0 is less than 5", ErrCheckFailed},
 		{0, nil, "required,min:5", "required check failed: value missing", ErrCheckFailed},
 		{uint16(1), nil, "required,min:5", "min check failed: 1 is less than 5", ErrCheckFailed},
@@ -183,7 +199,7 @@ func TestValidate(t *testing.T) { //nolint:funlen // ok
 		{"abcde", nil, "min:5", "", nil},
 		{strings.Repeat("abcde", 1_000), nil, "min:5", "", nil},
 
-		{0, nil, "max:foo", `max check failed: strconv.Atoi: parsing "foo": invalid syntax`, ErrCheckFailed},
+		{0, nil, "max:foo", `max check failed: strconv.ParseInt: parsing "foo": invalid syntax`, ErrCheckFailed},
 		{0, nil, "max:5", "", nil},
 		{int32(1000), nil, "max:5", "max check failed: 1000 is more than 5", ErrCheckFailed},
 		{uint64(6), nil, "max:5", "max check failed: 6 is more than 5", ErrCheckFailed},
@@ -215,8 +231,8 @@ func TestValidate(t *testing.T) { //nolint:funlen // ok
 		{[...]float64{1, 2, 3, 4, 5}, nil, "max:3", "max check failed: len 5 is more than 3", ErrCheckFailed},
 
 		{func() {}, nil, "min:2", "min check failed: reflect: call of reflect.Value.Len on func Value", ErrCheckFailed},
-		{int(1), nil, "eq:foo", `eq check failed: strconv.Atoi: parsing "foo": invalid syntax`, ErrCheckFailed},
-		{uint(1), nil, "ne:foo", `ne check failed: strconv.Atoi: parsing "foo": invalid syntax`, ErrCheckFailed},
+		{int(1), nil, "eq:foo", `eq check failed: strconv.ParseInt: parsing "foo": invalid syntax`, ErrCheckFailed},
+		{uint(1), nil, "ne:foo", `ne check failed: strconv.ParseUint: parsing "foo": invalid syntax`, ErrCheckFailed},
 		{float32(1), nil, "min:foo", `min check failed: strconv.ParseFloat: parsing "foo": invalid syntax`, ErrCheckFailed},
 		{float64(1), nil, "max:foo", `max check failed: strconv.ParseFloat: parsing "foo": invalid syntax`, ErrCheckFailed},
 		{"", nil, "ne:foo", `ne check failed: strconv.Atoi: parsing "foo": invalid syntax`, ErrCheckFailed},

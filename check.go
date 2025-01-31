@@ -9,6 +9,15 @@ import (
 	"strconv"
 )
 
+type expOutcome int
+
+const (
+	expLess expOutcome = iota - 1
+	expEq
+	expMore
+	expNotEq
+)
+
 // Possible errors.
 var (
 	ErrCheckFailed    = errors.New("check failed")
@@ -19,6 +28,13 @@ var (
 
 // NOTE: It is well covered with tests, the regexp is fine.
 var uuid, _ = Regex(`(?i)^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$`) //nolint:errcheck // ok
+
+var expLabel = map[expOutcome]string{
+	expLess:  "more than",
+	expMore:  "less than",
+	expEq:    "not equal to",
+	expNotEq: "equal to",
+}
 
 func required(v reflect.Value) (err error) {
 	if isZero(v) {
@@ -48,40 +64,29 @@ func Regex(arg string) (c Checker, err error) {
 // Eq checks numbers for being == `arg` and things with a `len()`
 // (`array`, `chan`, `map`, `slice`, `string`) for having len == `arg`.
 func Eq(arg string) (c Checker, err error) {
-	return sizeCmp(arg, 0)
+	return sizeCmp(arg, expEq)
 }
 
 // Ne checks numbers for being != `arg` and things with a `len()`
 // (`array`, `chan`, `map`, `slice`, `string`) for having len != `arg`.
 func Ne(arg string) (c Checker, err error) {
-	return sizeCmp(arg, 2)
+	return sizeCmp(arg, expNotEq)
 }
 
 // Min checks numbers for being at least `arg` and things with a `len()`
 // (`array`, `chan`, `map`, `slice`, `string`) for having len at least `arg`.
 func Min(arg string) (c Checker, err error) {
-	return sizeCmp(arg, 1)
+	return sizeCmp(arg, expMore)
 }
 
 // Max checks numbers for being at most `arg` and things with a `len()`
 // (`array`, `chan`, `map`, `slice`, `string`) for having len at most `arg`.
 func Max(arg string) (c Checker, err error) {
-	return sizeCmp(arg, -1)
+	return sizeCmp(arg, expLess)
 }
 
-func sizeCmp(arg string, expCmp int) (c Checker, err error) { //nolint:gocognit,funlen // ok
-	var label string
-
-	switch expCmp {
-	case -1:
-		label = "more than"
-	case 1:
-		label = "less than"
-	case 0:
-		label = "not equal to"
-	case 2:
-		label = "equal to"
-	}
+func sizeCmp(arg string, exp expOutcome) (c Checker, err error) { //nolint:gocognit,funlen // ok
+	label := expLabel[exp]
 
 	return func(v reflect.Value) (err error) {
 		defer func() {
@@ -96,25 +101,23 @@ func sizeCmp(arg string, expCmp int) (c Checker, err error) { //nolint:gocognit,
 
 		switch {
 		case v.CanInt():
-			var x int
+			var x int64
 
-			if x, err = strconv.Atoi(arg); err != nil {
+			if x, err = strconv.ParseInt(arg, 10, 64); err != nil {
 				return
 			}
 
-			y := int(v.Int())
-			if cmp2(y, x, expCmp) {
+			if y := v.Int(); cmp2(y, x, exp) {
 				return fmt.Errorf("%d is %s %d", y, label, x)
 			}
 		case v.CanUint():
-			var x int
+			var x uint64
 
-			if x, err = strconv.Atoi(arg); err != nil {
+			if x, err = strconv.ParseUint(arg, 10, 64); err != nil {
 				return
 			}
 
-			y := uint(v.Uint())
-			if cmp2(y, uint(x), expCmp) { //nolint:gosec // ok
+			if y := v.Uint(); cmp2(y, x, exp) {
 				return fmt.Errorf("%d is %s %d", y, label, x)
 			}
 		case v.CanFloat():
@@ -126,7 +129,7 @@ func sizeCmp(arg string, expCmp int) (c Checker, err error) { //nolint:gocognit,
 					return
 				}
 
-				if cmp2(vv, float32(x), expCmp) {
+				if cmp2(vv, float32(x), exp) {
 					return fmt.Errorf("%.0f is %s %.0f", vv, label, x)
 				}
 			case float64:
@@ -134,7 +137,7 @@ func sizeCmp(arg string, expCmp int) (c Checker, err error) { //nolint:gocognit,
 					return
 				}
 
-				if cmp2(vv, x, expCmp) {
+				if cmp2(vv, x, exp) {
 					return fmt.Errorf("%.0f is %s %.0f", vv, label, x)
 				}
 			}
@@ -145,9 +148,7 @@ func sizeCmp(arg string, expCmp int) (c Checker, err error) { //nolint:gocognit,
 				return
 			}
 
-			// FIXME: Len can panic!
-			y := v.Len()
-			if cmp2(y, x, expCmp) {
+			if y := v.Len(); cmp2(y, x, exp) {
 				return fmt.Errorf("len %d is %s %d", y, label, x)
 			}
 		}
@@ -156,18 +157,16 @@ func sizeCmp(arg string, expCmp int) (c Checker, err error) { //nolint:gocognit,
 	}, nil
 }
 
-func cmp2[T cmp.Ordered](a, b T, expCmp int) bool {
-	switch actCmp := cmp.Compare(a, b); expCmp {
-	case -1:
-		return actCmp != -1 && actCmp != 0
-	case 1:
-		return actCmp != 1 && actCmp != 0
-	case 0:
-		return actCmp != 0
-	case 2:
-		return actCmp == 0
+func cmp2[T cmp.Ordered](a, b T, exp expOutcome) bool {
+	switch act := expOutcome(cmp.Compare(a, b)); exp {
+	case expLess:
+		return act != expLess && act != 0
+	case expMore:
+		return act != expMore && act != 0
+	case expEq:
+		return act != expEq
 	default:
-		return false
+		return act == expEq
 	}
 }
 

@@ -62,6 +62,14 @@ var DefaultValidator = New()
 // DefaultDontSkipZero holds the default list of checks that do NOT skip
 // the zero value. By default, checks are skipping it, unless they are
 // in this list.
+//
+// This allows checks to be used for optional fields as well, i.e.:
+// `validate:"uuid"` will allow an empty string and only validate it
+// as uuid if not empty. To BOTH require it to be present and be an uuid,
+// you would combine `validate:"required,uuid"`.
+//
+// In short, checks should be kept small, focused and composable and
+// avoid overlapping their responsibilities.
 var DefaultDontSkipZero = []string{"required", "eq", "ne", "min", "max"}
 
 // New creates a new [Validator], initialized with the default checkers
