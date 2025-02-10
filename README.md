@@ -5,6 +5,7 @@
 [![Coverage Status](https://coveralls.io/repos/github/alexaandru/vali/badge.svg)](https://coveralls.io/github/alexaandru/vali)
 [![Go Report Card](https://goreportcard.com/badge/github.com/alexaandru/vali)](https://goreportcard.com/report/github.com/alexaandru/vali)
 [![Go Reference](https://pkg.go.dev/badge/github.com/alexaandru/vali.svg)](https://pkg.go.dev/github.com/alexaandru/vali)
+[![Socket.dev](https://socket.dev/api/badge/go/package/github.com/alexaandru/vali)](https://socket.dev/go/package/github.com/alexaandru/vali)
 
 **Vali**, a purposefully tiny validator. 🔋🔋🔋 are not included,
 but there are recipes on how to make them ☺️.
