@@ -10,7 +10,7 @@ import (
 	"testing"
 )
 
-type testCase struct {
+type testCase struct { //nolint:govet // OK
 	v      any
 	s      *Validator
 	tag    string
@@ -76,7 +76,7 @@ func TestValidatorRegisterChecker(t *testing.T) {
 }
 
 func TestRegisterCheckerMaker(t *testing.T) {
-	x := struct {
+	x := struct { //nolint:varnamelen // OK
 		Foo foo `validate:"one_of3:foo|bar|baz"`
 	}{
 		Foo: []byte("foobar"),
@@ -117,6 +117,7 @@ func TestValidatorRegisterCheckerMaker(t *testing.T) {
 	t.Skip("tested implicitly")
 }
 
+//nolint:maintidx,lll // OK
 func TestValidate(t *testing.T) { //nolint:funlen // ok
 	t.Parallel()
 

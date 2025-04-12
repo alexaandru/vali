@@ -1,14 +1,19 @@
-all: lint test
+all: fmt vulncheck lint test
+
+fmt:
+	@find -name "*.go"|xargs go tool -modfile=tools/go.mod gofumpt -extra -w
+	@find -name "*.go"|xargs go tool -modfile=tools/go.mod goimports -w
+
+vulncheck:
+	@go tool -modfile=tools/go.mod govulncheck ./...
+
+lint:
+	@go tool -modfile=tools/go.mod golangci-lint config verify
+	@go tool -modfile=tools/go.mod golangci-lint run
+	@go tool -modfile tools/go.mod modernize -test ./...
 
 test:
 	@go test -vet=all -cover -covermode=atomic -coverprofile=unit.cov .
-
-check_lint:
-	@golangci-lint version > /dev/null 2>&1 || \
-		go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
-
-lint: check_lint
-	@golangci-lint run
 
 clean:
 	@rm -rf unit.cov unit.svg

@@ -220,7 +220,7 @@ func (v *Validator) validateScalar(val reflect.Value, tag string, scope ...strin
 }
 
 func (v *Validator) parse(tag string) (cx []Checker, cxNames []string, err error) {
-	for _, tag := range strings.Split(tag, v.CheckSep) {
+	for tag := range strings.SplitSeq(tag, v.CheckSep) {
 		tag = strings.TrimSpace(tag)
 		if tag == "" {
 			continue

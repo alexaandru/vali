@@ -176,6 +176,8 @@ func oneOf(args string) (Checker, error) {
 
 // TODO: When this is closed, remove this:
 // https://github.com/golang/go/issues/51649
+//
+//nolint:godox // OK
 func isZero(v reflect.Value) (ok bool) {
 	defer func() {
 		if x := recover(); x != nil {

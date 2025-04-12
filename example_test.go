@@ -36,11 +36,11 @@ func ExampleValidator_Validate_custom_checker() {
 
 	phone = "123"
 	err = vali.Validate(s)
-	fmt.Println(err) // this should err
+	fmt.Println(err) // This should err.
 
 	phone = "123-456-7890"
 	err = vali.Validate(s)
-	fmt.Println(err) // this should not
+	fmt.Println(err) // This should not.
 
 	// Output: Foo.Bar: phone check failed: "123" does not match ^\d{3}-?\d{3}-?\d{4}$
 	// <nil>
@@ -62,11 +62,11 @@ func ExampleValidator_Validate_custom_min() {
 
 	s.Foo.Bar = 9
 	err = vali.Validate(s)
-	fmt.Println(err) // this should err
+	fmt.Println(err) // This should err.
 
 	s.Foo.Bar = 10
 	err = vali.Validate(s)
-	fmt.Println(err) // this should not
+	fmt.Println(err) // This should not.
 
 	// Output: Foo.Bar: min10 check failed: 9 is less than 10
 	// <nil>
@@ -82,6 +82,6 @@ func ExampleValidator_Validate_unexported() {
 	s.Foo.bar = "123"
 
 	err := vali.Validate(s)
-	fmt.Println(err) // will not validate private fields.
+	fmt.Println(err) // Will not validate private fields.
 	// Output: <nil>
 }
