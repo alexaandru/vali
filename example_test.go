@@ -85,3 +85,56 @@ func ExampleValidator_Validate_unexported() {
 	fmt.Println(err) // Will not validate private fields.
 	// Output: <nil>
 }
+
+func ExampleValidator_Validate_luhn() {
+	s := struct {
+		CreditCard string `validate:"luhn"`
+	}{}
+
+	// Valid credit card number (passing Luhn algorithm).
+	s.CreditCard = "4111 1111 1111 1111"
+	err := vali.Validate(s)
+	fmt.Println(err)
+
+	// Invalid credit card number (failing Luhn algorithm).
+	s.CreditCard = "4111 1111 1111 1112"
+	if err = vali.Validate(s); err != nil {
+		fmt.Println("Invalid")
+	}
+
+	// Output: <nil>
+	// Invalid
+}
+
+func ExampleValidator_Validate_ssn_npi() {
+	s := struct {
+		SSN string `validate:"ssn"`
+		NPI string `validate:"npi"`
+	}{}
+
+	// Valid SSN.
+	s.SSN = "123-45-6789"
+	err := vali.Validate(s)
+	fmt.Println("Valid SSN:", err)
+
+	// Invalid SSN format.
+	s.SSN = "12345-6789"
+	err = vali.Validate(s)
+	fmt.Println("Invalid SSN:", err != nil)
+
+	// Valid NPI (with 80840 prefix for Luhn check).
+	s.SSN = ""
+	s.NPI = "1234567893"
+	err = vali.Validate(s)
+	fmt.Println("Valid NPI:", err)
+
+	// Invalid NPI.
+	s.NPI = "12345"
+	err = vali.Validate(s)
+	fmt.Println("Invalid NPI:", err != nil)
+
+	// Output: Valid SSN: <nil>
+	// Invalid SSN: true
+	// Valid NPI: <nil>
+	// Invalid NPI: true
+}

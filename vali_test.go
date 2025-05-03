@@ -50,7 +50,7 @@ func TestRegisterChecker(t *testing.T) {
 		Foo: []byte("pink"),
 	}
 
-	rgb := func(v reflect.Value) error {
+	rgbChecker := func(v reflect.Value) error {
 		if !slices.Contains([]string{"red", "green", "blue"}, fmt.Sprint(v.Interface())) {
 			return errors.New("must be red, green or blue")
 		}
@@ -58,7 +58,7 @@ func TestRegisterChecker(t *testing.T) {
 		return nil
 	}
 
-	RegisterChecker("rgb", rgb)
+	RegisterChecker("rgb", rgbChecker)
 
 	err := Validate(x)
 	if !errors.Is(err, ErrCheckFailed) {
