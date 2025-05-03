@@ -24,6 +24,8 @@ const (
 	expNotEq
 )
 
+const rgbRange = `(?:2(?:5[0-5]|[0-4]\d)|1\d\d|[1-9]?\d)`
+
 // Possible errors.
 var (
 	ErrCheckFailed    = errors.New("check failed")
@@ -34,9 +36,7 @@ var (
 
 //nolint:errcheck,lll // well covered with tests
 var (
-	rgbRange = `(?:2(?:5[0-5]|[0-4]\d)|1\d\d|[1-9]?\d)`
-	npiRx    = regexp.MustCompile(`^\d{10}$`)
-
+	npiRx          = regexp.MustCompile(`^\d{10}$`)
 	uuid, _        = Regex(`(?i)^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$`)
 	mongoID, _     = Regex(`(?i)^[0-9a-f]{24}$`)
 	hexadecimal, _ = Regex(`(?i)^[0-9a-f]+$`)
