@@ -32,7 +32,7 @@ var (
 	ErrInvalidCmp     = errors.New("invalid comparison")
 )
 
-//nolint:errcheck // well covered with tests
+//nolint:errcheck,lll // well covered with tests
 var (
 	rgbRange = `(?:2(?:5[0-5]|[0-4]\d)|1\d\d|[1-9]?\d)`
 	npiRx    = regexp.MustCompile(`^\d{10}$`)
@@ -42,7 +42,7 @@ var (
 	hexadecimal, _ = Regex(`(?i)^[0-9a-f]+$`)
 	base64, _      = Regex(`(?i)^(?:[a-z0-9+/]{4})*(?:[a-z0-9+/]{2}==|[a-z0-9+/]{3}=)?$`)
 	domain, _      = Regex(`(?i)^([a-z0-9]([a-z0-9\-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$`)
-	ssn, _         = Regex(`^\d{3}-\d{2}-\d{4}$`)
+	ssn, _         = Regex(`^(0(0[1-9]|[1-9]\d)|[1-5]\d\d|6([0-5]\d|6[0-5]|6[7-9]|[7-9]\d)|[7-8]\d\d)-(0[1-9]|[1-9]\d)-(000[1-9]|00[1-9]\d|0[1-9]\d\d|[1-9]\d\d\d)$`)
 	alpha, _       = Regex(`(?i)^[a-z]*$`)
 	alphaNum, _    = Regex(`(?i)^[a-z0-9]*$`)
 	numeric, _     = Regex(`^\d*$`)

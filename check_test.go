@@ -728,6 +728,13 @@ func TestSSN(t *testing.T) {
 		wantErr bool
 	}{
 		{"Valid SSN", "123-45-6789", false},
+		{"Valid SSN", "456-45-6789", false},
+		{"Valid SSN", "890-45-6789", false},
+		{"Invalid SSN", "000-45-6789", true},
+		{"Invalid SSN", "666-45-6789", true},
+		{"Invalid SSN", "900-45-6789", true},
+		{"Invalid SSN", "999-45-6789", true},
+		{"Invalid SSN", "123-45-0000", true},
 		{"Invalid SSN format", "123456789", true},
 		{"Invalid SSN with letters", "123-45-67a9", true},
 		{"Numeric", 12345, true},
