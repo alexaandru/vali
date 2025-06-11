@@ -367,7 +367,8 @@ func Max(arg string) (c Checker, err error) {
 	return sizeCmp(arg, expLess)
 }
 
-func sizeCmp(arg string, exp expOutcome) (c Checker, err error) { //nolint:gocognit,funlen // ok
+//nolint:nakedret,gocognit,funlen,cyclop // ok
+func sizeCmp(arg string, exp expOutcome) (c Checker, err error) {
 	label := expLabel[exp]
 
 	return func(v reflect.Value) (err error) {
@@ -424,14 +425,39 @@ func sizeCmp(arg string, exp expOutcome) (c Checker, err error) { //nolint:gocog
 				}
 			}
 		default:
-			var x int
+			var x int //nolint:varnamelen // ok
 
 			if x, err = strconv.Atoi(arg); err != nil {
 				return
 			}
 
-			if y := v.Len(); cmp2(y, x, exp) {
-				return fmt.Errorf("len %d is %s %d", y, label, x)
+			for v.Kind() == reflect.Ptr {
+				if v.IsNil() {
+					return
+				}
+
+				v = v.Elem()
+			}
+
+			if v.Kind() == reflect.Invalid {
+				return nil
+			}
+
+			switch v.Kind() {
+			case reflect.Array, reflect.String:
+				if y := v.Len(); cmp2(y, x, exp) {
+					return fmt.Errorf("len %d is %s %d", y, label, x)
+				}
+			case reflect.Map, reflect.Slice, reflect.Chan:
+				if v.IsNil() {
+					return
+				}
+
+				if y := v.Len(); cmp2(y, x, exp) {
+					return fmt.Errorf("len %d is %s %d", y, label, x)
+				}
+			default:
+				return fmt.Errorf("len check failed: unsupported kind %s", v.Kind())
 			}
 		}
 

@@ -127,6 +127,18 @@ func TestValidate(t *testing.T) { //nolint:funlen // ok
 		{struct{}{}, nil, "", "", nil},
 		{struct{ S *string }{}, nil, "", "", nil},
 		{struct {
+			S *string `validate:"min:3,max:5"`
+		}{S: nil}, nil, "", "", nil},
+		{struct {
+			S *string `validate:"min:3,max:5"`
+		}{S: p("hi")}, nil, "", "S: min check failed: len 2 is less than 3", ErrCheckFailed},
+		{struct {
+			S *string `validate:"min:3,max:5"`
+		}{S: p("hello")}, nil, "", "", nil},
+		{struct {
+			S *string `validate:"min:3,max:5"`
+		}{S: p("helloo")}, nil, "", "S: max check failed: len 6 is more than 5", ErrCheckFailed},
+		{struct {
 			S **string `validate:""`
 		}{}, nil, "", "", nil},
 		{struct {
@@ -231,7 +243,7 @@ func TestValidate(t *testing.T) { //nolint:funlen // ok
 		{[...]int{1, 2, 3}, nil, "max:3", "", nil},
 		{[...]float64{1, 2, 3, 4, 5}, nil, "max:3", "max check failed: len 5 is more than 3", ErrCheckFailed},
 
-		{func() {}, nil, "min:2", "min check failed: reflect: call of reflect.Value.Len on func Value", ErrCheckFailed},
+		{func() {}, nil, "min:2", "min check failed: len check failed: unsupported kind func", ErrCheckFailed},
 		{int(1), nil, "eq:foo", `eq check failed: strconv.ParseInt: parsing "foo": invalid syntax`, ErrCheckFailed},
 		{uint(1), nil, "ne:foo", `ne check failed: strconv.ParseUint: parsing "foo": invalid syntax`, ErrCheckFailed},
 		{float32(1), nil, "min:foo", `min check failed: strconv.ParseFloat: parsing "foo": invalid syntax`, ErrCheckFailed},
@@ -364,7 +376,7 @@ func TestValidate(t *testing.T) { //nolint:funlen // ok
 
 			err := Validate(tc.v, tc.tag)
 			if !errors.Is(err, tc.expErr) {
-				t.Fatalf("Expected %v got %v", tc.expErr, err)
+				t.Fatalf("Expected %v got %v for %v (tag: %q)", tc.expErr, err, tc.v, tc.tag)
 			}
 
 			if err == nil {
