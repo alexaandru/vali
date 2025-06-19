@@ -6,6 +6,12 @@ import (
 	"github.com/alexaandru/vali"
 )
 
+type foo struct{}
+
+func (foo) Foo() string {
+	return "hello world"
+}
+
 func ExampleValidator_Validate() {
 	s := struct {
 		Foo struct {
@@ -69,6 +75,26 @@ func ExampleValidator_Validate_custom_min() {
 	fmt.Println(err) // This should not.
 
 	// Output: Foo.Bar: min10 check failed: 9 is less than 10
+	// <nil>
+}
+
+func ExampleValidator_Validate_interface() {
+	type fooer interface {
+		Foo() string
+	}
+
+	s := struct {
+		F fooer `validate:"required"`
+	}{}
+
+	err := vali.Validate(s)
+	fmt.Println(err) // This should err.
+
+	s.F = foo{}
+	err = vali.Validate(s)
+	fmt.Println(err) // This should not.
+
+	// Output: F: required check failed: value missing
 	// <nil>
 }
 
