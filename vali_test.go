@@ -121,6 +121,8 @@ func TestValidatorRegisterCheckerMaker(t *testing.T) {
 func TestValidate(t *testing.T) { //nolint:funlen // ok
 	t.Parallel()
 
+	vNoErr := New()
+	vNoErr.ErrorOnPrivate = false
 	testCases := []testCase{
 		{struct{}{}, &Validator{}, "", "", nil},
 		{struct{}{}, New(""), "", "", nil},
@@ -167,11 +169,11 @@ func TestValidate(t *testing.T) { //nolint:funlen // ok
 		{_uuid, nil, "required,uuid", "", nil},
 
 		{t1{}, nil, "", "", nil},
-		{t2{}, nil, "", "", nil},
+		{t2{}, vNoErr, "", "", nil},
 		{t1{}, nil, "required", "required check failed: value missing", ErrCheckFailed},
 		{t2{}, nil, "required", "required check failed: value missing", ErrCheckFailed},
 		{t1{Foo: "foobar"}, nil, "required", "", nil},
-		{&t2{t1: t1{Foo: "foobar"}}, nil, "", "", nil},
+		{&t2{t1: t1{Foo: "foobar"}}, vNoErr, "", "", nil},
 
 		{0, nil, "eq:0", "", nil},
 		{0, nil, "ne:0", "ne check failed: 0 is equal to 0", ErrCheckFailed},
@@ -261,7 +263,7 @@ func TestValidate(t *testing.T) { //nolint:funlen // ok
 		{struct {
 			foo string `validate:"required,uuid"`
 			bar int
-		}{foo: "foo"}, nil, "", "", nil},
+		}{foo: "foo"}, vNoErr, "", "", nil},
 		{struct {
 			Foo string `validate:"                                "`
 			Bar int
@@ -374,7 +376,14 @@ func TestValidate(t *testing.T) { //nolint:funlen // ok
 		t.Run("", func(t *testing.T) {
 			t.Parallel()
 
-			err := Validate(tc.v, tc.tag)
+			var err error
+
+			if tc.s != nil {
+				err = tc.s.Validate(tc.v, tc.tag)
+			} else {
+				err = Validate(tc.v, tc.tag)
+			}
+
 			if !errors.Is(err, tc.expErr) {
 				t.Fatalf("Expected %v got %v for %v (tag: %q)", tc.expErr, err, tc.v, tc.tag)
 			}

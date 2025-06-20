@@ -32,6 +32,7 @@ var (
 	ErrRequired       = errors.New("value missing")
 	ErrInvalidChecker = errors.New("invalid checker")
 	ErrInvalidCmp     = errors.New("invalid comparison")
+	ErrPrivateField   = errors.New("private field")
 )
 
 //nolint:errcheck,lll // well covered with tests

@@ -48,6 +48,11 @@ type (
 		// are part of this list.
 		DontSkipZeroChecks []string
 
+		// ErrorOnPrivate indicates whether to return an error if a private field
+		// has a validation tag. Private fields validation is NOT supported, so
+		// setting a tag for it is most likel a mistake.
+		ErrorOnPrivate bool
+
 		sync.RWMutex
 	}
 )
@@ -75,6 +80,10 @@ var DefaultDontSkipZero = []string{"required", "eq", "ne", "min", "max"}
 // New creates a new [Validator], initialized with the default checkers
 // and ready to be used. You can optionally pass a struct tag name or
 // use the [DefaultValidatorTagName].
+//
+// By default, it errors out if it encounters validation tags on private
+// fields, but you can change that by setting the [Validator.ErrorOnPrivate]
+// to false. The error will be of type [ErrPrivateField].
 func New(opts ...string) (v *Validator) {
 	tag := DefaultValidatorTagName
 	if len(opts) > 0 {
@@ -87,6 +96,7 @@ func New(opts ...string) (v *Validator) {
 		checkers:           map[string]Checker{},
 		checkerMakers:      map[string]CheckerMaker{},
 		DontSkipZeroChecks: DefaultDontSkipZero,
+		ErrorOnPrivate:     true,
 	}
 
 	v.RegisterChecker("required", required)
@@ -186,12 +196,16 @@ func (v *Validator) validate(val reflect.Value, tag string, scope ...string) (er
 
 	for i := range val.NumField() {
 		iType := val.Type().Field(i)
-		if !iType.IsExported() {
-			continue
-		}
-
 		reflTag := iType.Tag
 		tag = strings.TrimSpace(reflTag.Get(v.tag))
+
+		if !iType.IsExported() {
+			if v.ErrorOnPrivate && tag != "" {
+				return fmt.Errorf("%s: %w, will not validate", strings.Join(append(scope, iType.Name), "."), ErrPrivateField)
+			}
+
+			continue
+		}
 
 		iVal := val.Field(i)
 		for iVal.Kind() == reflect.Ptr {

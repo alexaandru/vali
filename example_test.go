@@ -107,9 +107,17 @@ func ExampleValidator_Validate_unexported() {
 
 	s.Foo.bar = "123"
 
-	err := vali.Validate(s)
+	v := vali.New()
+	v.ErrorOnPrivate = false
+	err := v.Validate(s)
 	fmt.Println(err) // Will not validate private fields.
+
+	v.ErrorOnPrivate = true // The default.
+	err = v.Validate(s)
+	fmt.Println(err) // This will error out.
+
 	// Output: <nil>
+	// Foo.bar: private field, will not validate
 }
 
 func ExampleValidator_Validate_luhn() {
