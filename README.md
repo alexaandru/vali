@@ -1,8 +1,8 @@
 # Vali, Yet Another **Vali**dator
 
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
-[![Build and Test](https://github.com/alexaandru/vali/actions/workflows/ci.yml/badge.svg)](https://github.com/alexaandru/vali/actions/workflows/ci.yml)
-[![Coverage Status](https://coveralls.io/repos/github/alexaandru/vali/badge.svg)](https://coveralls.io/github/alexaandru/vali)
+[![Test](https://github.com/alexaandru/vali/actions/workflows/ci.yml/badge.svg)](https://github.com/alexaandru/vali/actions/workflows/ci.yml)
+![Coverage](coverage-badge.svg)
 [![Go Report Card](https://goreportcard.com/badge/github.com/alexaandru/vali)](https://goreportcard.com/report/github.com/alexaandru/vali)
 [![Go Reference](https://pkg.go.dev/badge/github.com/alexaandru/vali.svg)](https://pkg.go.dev/github.com/alexaandru/vali)
 [![Socket.dev](https://socket.dev/api/badge/go/package/github.com/alexaandru/vali)](https://socket.dev/go/package/github.com/alexaandru/vali)
@@ -30,16 +30,17 @@ Foo *string `validate:"required"`
 
 passes if `*Foo != ""` NOT if `Foo != nil`.
 
-It only validates public/exported fields and (by default)will error
-out if validation tags are found on private fields. This helps catch
-mistakes early. You can control this behavior using the `ErrorOnPrivate`
-option on the `Validator` instance.
+It validates both public and private fields, as long as they have
+the validation tags.
 
 Non-goals:
 
 - `slice`/`map` dive;
 - cross field checks;
 - anything that needs a 3rd party dep.
+
+**Why?** Complex validation reads better when is expressed as Go code,
+rather than in struct tags "perlisms".
 
 ## Available Checks
 
@@ -97,55 +98,13 @@ s := struct {
 	Foo struct {
 		Bar string `validate:"required, one_of:foo|bar|baz"`
 	}
+	email string `validate:"required,email"`
 }{}
 
 if err := vali.Validate(s); err != nil {
     fmt.Println("oh noes!...")
 }
 ```
-
-<details>
-<summary><strong>Working with Private Fields</strong></summary>
-
-By default, Vali will error out if it finds validation tags on private fields:
-
-```Go
-type User struct {
-    Name string `validate:"required"`
-    email string `validate:"email"` // This will cause an error
-}
-
-err := vali.Validate(User{})
-// err will contain ErrPrivateField
-```
-
-If you need to disable this behavior (for backward compatibility), you have two options:
-
-1. Create a custom validator with `ErrorOnPrivate` set to false:
-
-```Go
-v := vali.New()
-v.ErrorOnPrivate = false
-
-type User struct {
-    Name string `validate:"required"`
-    email string `validate:"email"` // This will be silently ignored
-}
-
-err := v.Validate(User{}) // No error about the private field
-```
-
-2. Disable it globally on the default validator:
-
-```Go
-// Disable ErrorOnPrivate globally for all validation calls using the DefaultValidator
-vali.DefaultValidator.ErrorOnPrivate = false
-
-// Now all calls to the package-level Validate function will ignore private field tags
-err := vali.Validate(User{}) // No error about the private field
-```
-
-</details>
 
 ## Documentation
 

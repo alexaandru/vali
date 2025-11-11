@@ -105,19 +105,17 @@ func ExampleValidator_Validate_unexported() {
 		}
 	}{}
 
-	s.Foo.bar = "123"
+	s.Foo.bar = "550e8400-e29b-41d4-a716-446655440000"
 
-	v := vali.New()
-	v.ErrorOnPrivate = false
-	err := v.Validate(s)
-	fmt.Println(err) // Will not validate private fields.
+	err := vali.Validate(s)
+	fmt.Println(err) // Private fields with tags are validated!
 
-	v.ErrorOnPrivate = true // The default.
-	err = v.Validate(s)
-	fmt.Println(err) // This will error out.
+	s.Foo.bar = "invalid"
+	err = vali.Validate(s)
+	fmt.Println(err) // Validation fails for invalid UUID.
 
 	// Output: <nil>
-	// Foo.bar: private field, will not validate
+	// Foo.bar: uuid check failed: "invalid" does not match (?i)^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$
 }
 
 func ExampleValidator_Validate_luhn() {

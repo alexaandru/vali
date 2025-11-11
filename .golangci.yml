@@ -10,9 +10,11 @@ linters:
     - exhaustruct
     - gochecknoglobals # we want some globals for now
     - mnd
+    - noinlineerr # we want inline errs, why not?
     - nonamedreturns # we want named returns
     - paralleltest # TODO
     - testpackage
+    - wsl # deprecated
   settings:
     cyclop:
       package-average: 4
@@ -35,6 +37,12 @@ linters:
         - switch
         - map
       default-signifies-exhaustive: true
+    forbidigo:
+      forbid:
+        - pattern: "context.Background"
+          msg: "Use t.Context() in tests instead of context.Background()"
+        - pattern: "context.TODO"
+          msg: "Use t.Context() in tests instead of context.TODO()"
     funlen:
       ignore-comments: true
     gocritic:
@@ -87,7 +95,7 @@ linters:
         - stdlib
         - generic
     lll:
-      line-length: 120
+      line-length: 128
       tab-width: 1
     makezero:
       always: false
@@ -160,6 +168,11 @@ linters:
   exclusions:
     warn-unused: true
     generated: lax
+    # rules:
+    #   - linters:
+    #       - forbidigo
+    #     text: Use t.Context
+    #     path-except: _test\.go
 issues:
   max-issues-per-linter: 0
   max-same-issues: 0
@@ -168,7 +181,6 @@ issues:
 formatters:
   enable:
     - gofmt
-    - gofumpt
     - goimports
   settings:
     gofmt:

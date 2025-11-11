@@ -32,7 +32,6 @@ var (
 	ErrRequired       = errors.New("value missing")
 	ErrInvalidChecker = errors.New("invalid checker")
 	ErrInvalidCmp     = errors.New("invalid comparison")
-	ErrPrivateField   = errors.New("private field")
 )
 
 //nolint:errcheck,lll // well covered with tests
@@ -59,7 +58,7 @@ var expLabel = map[expOutcome]string{
 }
 
 func email(v reflect.Value) (err error) {
-	s := fmt.Sprint(v.Interface())
+	s := fmt.Sprint(Interface(v))
 	if _, err = mail.ParseAddress(s); err != nil {
 		return fmt.Errorf("%q is not a valid email address", s)
 	}
@@ -68,7 +67,7 @@ func email(v reflect.Value) (err error) {
 }
 
 func urL(v reflect.Value) (err error) {
-	s := fmt.Sprint(v.Interface())
+	s := fmt.Sprint(Interface(v))
 
 	u, err := url.Parse(s)
 	if err != nil {
@@ -83,7 +82,7 @@ func urL(v reflect.Value) (err error) {
 }
 
 func ip(v reflect.Value) (err error) {
-	if s := fmt.Sprint(v.Interface()); net.ParseIP(s) == nil {
+	if s := fmt.Sprint(Interface(v)); net.ParseIP(s) == nil {
 		return fmt.Errorf("%q is not a valid IP address", s)
 	}
 
@@ -91,7 +90,7 @@ func ip(v reflect.Value) (err error) {
 }
 
 func ipv4(v reflect.Value) (err error) {
-	s := fmt.Sprint(v.Interface())
+	s := fmt.Sprint(Interface(v))
 	if ip := net.ParseIP(s); ip == nil || ip.To4() == nil {
 		return fmt.Errorf("%q is not a valid IPv4 address", s)
 	}
@@ -100,7 +99,7 @@ func ipv4(v reflect.Value) (err error) {
 }
 
 func ipv6(v reflect.Value) (err error) {
-	s := fmt.Sprint(v.Interface())
+	s := fmt.Sprint(Interface(v))
 	if ip := net.ParseIP(s); ip == nil || ip.To4() != nil {
 		return fmt.Errorf("%q is not a valid IPv6 address", s)
 	}
@@ -109,7 +108,7 @@ func ipv6(v reflect.Value) (err error) {
 }
 
 func mac(v reflect.Value) (err error) {
-	s := fmt.Sprint(v.Interface())
+	s := fmt.Sprint(Interface(v))
 	if _, err = net.ParseMAC(s); err != nil {
 		return fmt.Errorf("%q is not a valid MAC address", s)
 	}
@@ -118,7 +117,7 @@ func mac(v reflect.Value) (err error) {
 }
 
 func isbn(v reflect.Value) (err error) {
-	switch s := strings.ReplaceAll(fmt.Sprint(v.Interface()), "-", ""); len(s) {
+	switch s := strings.ReplaceAll(fmt.Sprint(Interface(v)), "-", ""); len(s) {
 	case 10:
 		return validateISBN10(s)
 	case 13:
@@ -187,7 +186,7 @@ func validateISBN13(s string) (err error) {
 }
 
 func boolean(v reflect.Value) (err error) {
-	switch s := fmt.Sprint(v.Interface()); strings.ToLower(s) {
+	switch s := fmt.Sprint(Interface(v)); strings.ToLower(s) {
 	case "1", "t", "true", "yes", "y", "on":
 		return
 	case "0", "f", "false", "no", "n", "off":
@@ -198,7 +197,7 @@ func boolean(v reflect.Value) (err error) {
 }
 
 func creditCard(v reflect.Value) (err error) {
-	s := fmt.Sprint(v.Interface())
+	s := fmt.Sprint(Interface(v))
 	s = strings.ReplaceAll(s, " ", "")
 	s = strings.ReplaceAll(s, "-", "")
 
@@ -217,7 +216,7 @@ func creditCard(v reflect.Value) (err error) {
 
 func jsoN(v reflect.Value) (err error) {
 	var (
-		s  = fmt.Sprint(v.Interface())
+		s  = fmt.Sprint(Interface(v))
 		js any
 	)
 
@@ -229,7 +228,7 @@ func jsoN(v reflect.Value) (err error) {
 }
 
 func ascii(v reflect.Value) (err error) {
-	s := fmt.Sprint(v.Interface())
+	s := fmt.Sprint(Interface(v))
 	for i, r := range s {
 		if r > unicode.MaxASCII {
 			return fmt.Errorf("%q contains non-ASCII character %q at position %d", s, r, i)
@@ -240,7 +239,7 @@ func ascii(v reflect.Value) (err error) {
 }
 
 func lowercase(v reflect.Value) (err error) {
-	s := fmt.Sprint(v.Interface())
+	s := fmt.Sprint(Interface(v))
 	for i, r := range s {
 		if unicode.IsUpper(r) {
 			return fmt.Errorf("%q contains uppercase character %q at position %d", s, r, i)
@@ -251,7 +250,7 @@ func lowercase(v reflect.Value) (err error) {
 }
 
 func uppercase(v reflect.Value) (err error) {
-	s := fmt.Sprint(v.Interface())
+	s := fmt.Sprint(Interface(v))
 	for i, r := range s {
 		if unicode.IsLower(r) {
 			return fmt.Errorf("%q contains lowercase character %q at position %d", s, r, i)
@@ -270,11 +269,12 @@ func luhn(v reflect.Value) (err error) {
 	case reflect.Float32, reflect.Float64:
 		// Format float without scientific notation and remove decimal point.
 		s = strings.ReplaceAll(fmt.Sprintf("%.0f", v.Float()), ".", "")
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
-		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		s = fmt.Sprintf("%d", v.Interface())
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		s = strconv.FormatInt(v.Int(), 10)
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		s = strconv.FormatUint(v.Uint(), 10)
 	default:
-		s = fmt.Sprint(v.Interface())
+		s = fmt.Sprint(Interface(v))
 	}
 
 	s = strings.ReplaceAll(strings.ReplaceAll(s, " ", ""), "-", "")
@@ -310,7 +310,7 @@ func luhn(v reflect.Value) (err error) {
 
 // NPI validates if a string is a valid National Provider Identifier.
 func npi(v reflect.Value) (err error) {
-	s := fmt.Sprint(v.Interface())
+	s := fmt.Sprint(Interface(v))
 	if !npiRx.MatchString(s) {
 		return fmt.Errorf("%q is not a valid NPI", s)
 	}
@@ -335,7 +335,7 @@ func Regex(arg string) (c Checker, err error) {
 	}
 
 	return func(v reflect.Value) (err error) {
-		act := fmt.Sprint(v.Interface())
+		act := fmt.Sprint(Interface(v))
 		if rx.MatchString(act) {
 			return
 		}
@@ -407,20 +407,22 @@ func sizeCmp(arg string, exp expOutcome) (c Checker, err error) {
 		case v.CanFloat():
 			var x float64
 
-			switch vv := v.Interface().(type) {
-			case float32:
+			switch v.Kind() { //nolint:exhaustive // only floats can float
+			case reflect.Float32:
 				if x, err = strconv.ParseFloat(arg, 32); err != nil {
 					return
 				}
 
+				vv := float32(v.Float())
 				if cmp2(vv, float32(x), exp) {
 					return fmt.Errorf("%.0f is %s %.0f", vv, label, x)
 				}
-			case float64:
+			case reflect.Float64:
 				if x, err = strconv.ParseFloat(arg, 64); err != nil {
 					return
 				}
 
+				vv := v.Float()
 				if cmp2(vv, x, exp) {
 					return fmt.Errorf("%.0f is %s %.0f", vv, label, x)
 				}
@@ -432,7 +434,7 @@ func sizeCmp(arg string, exp expOutcome) (c Checker, err error) {
 				return
 			}
 
-			for v.Kind() == reflect.Ptr {
+			for v.Kind() == reflect.Pointer {
 				if v.IsNil() {
 					return
 				}

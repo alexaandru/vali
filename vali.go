@@ -48,12 +48,7 @@ type (
 		// are part of this list.
 		DontSkipZeroChecks []string
 
-		// ErrorOnPrivate indicates whether to return an error if a private field
-		// has a validation tag. Private fields validation is NOT supported, so
-		// setting a tag for it is most likel a mistake.
-		ErrorOnPrivate bool
-
-		sync.RWMutex
+		sync.RWMutex //nolint:embeddedstructfieldcheck // ok
 	}
 )
 
@@ -77,6 +72,36 @@ var DefaultValidator = New()
 // avoid overlapping their responsibilities.
 var DefaultDontSkipZero = []string{"required", "eq", "ne", "min", "max"}
 
+// Interface returns the value as an interface{}, working around the limitation
+// that unexported fields cannot use [reflect.Value].Interface().
+//
+// This is useful when implementing custom checkers that need to work with both
+// exported and unexported fields.
+//
+// Returns nil if the value cannot be extracted (e.g., complex unexported types).
+func Interface(v reflect.Value) any {
+	if v.CanInterface() {
+		return v.Interface()
+	}
+
+	switch v.Kind() {
+	case reflect.String:
+		return v.String()
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return v.Int()
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		return v.Uint()
+	case reflect.Float32, reflect.Float64:
+		return v.Float()
+	case reflect.Bool:
+		return v.Bool()
+	case reflect.Complex64, reflect.Complex128:
+		return v.Complex()
+	default:
+		return nil
+	}
+}
+
 // New creates a new [Validator], initialized with the default checkers
 // and ready to be used. You can optionally pass a struct tag name or
 // use the [DefaultValidatorTagName].
@@ -96,7 +121,6 @@ func New(opts ...string) (v *Validator) {
 		checkers:           map[string]Checker{},
 		checkerMakers:      map[string]CheckerMaker{},
 		DontSkipZeroChecks: DefaultDontSkipZero,
-		ErrorOnPrivate:     true,
 	}
 
 	v.RegisterChecker("required", required)
@@ -180,7 +204,7 @@ func (v *Validator) Validate(val any, tags ...string) (err error) {
 }
 
 func (v *Validator) validate(val reflect.Value, tag string, scope ...string) (err error) {
-	for val.Kind() == reflect.Ptr {
+	for val.Kind() == reflect.Pointer {
 		val = val.Elem()
 	}
 
@@ -199,16 +223,8 @@ func (v *Validator) validate(val reflect.Value, tag string, scope ...string) (er
 		reflTag := iType.Tag
 		tag = strings.TrimSpace(reflTag.Get(v.tag))
 
-		if !iType.IsExported() {
-			if v.ErrorOnPrivate && tag != "" {
-				return fmt.Errorf("%s: %w, will not validate", strings.Join(append(scope, iType.Name), "."), ErrPrivateField)
-			}
-
-			continue
-		}
-
 		iVal := val.Field(i)
-		for iVal.Kind() == reflect.Ptr {
+		for iVal.Kind() == reflect.Pointer {
 			iVal = iVal.Elem()
 		}
 
