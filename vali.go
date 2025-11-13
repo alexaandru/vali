@@ -17,6 +17,7 @@ import (
 	"slices"
 	"strings"
 	"sync"
+	"time"
 )
 
 type (
@@ -318,4 +319,11 @@ func (v *Validator) parse(tag string) (cx []Checker, cxNames []string, err error
 	}
 
 	return
+}
+
+//nolint:gochecknoinits,gosmopolitan // we do want this one
+func init() {
+	// Force initialization of time.Local to avoid race in parallel tests.
+	// See https://github.com/golang/go/issues/74460
+	_ = time.Local.String()
 }
