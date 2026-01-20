@@ -448,6 +448,47 @@ func TestValidate(t *testing.T) { //nolint:funlen // ok
 		{struct {
 			username string `validate:"required,alphanum,min:3,max:20"`
 		}{username: "ab"}, nil, "", "username: min check failed: len 2 is less than 3", ErrCheckFailed},
+
+		// Skip field with validate:"-".
+		{struct {
+			Foo string `validate:"-"`
+		}{Foo: ""}, nil, "", "", nil},
+		{struct {
+			foo string `validate:"-"`
+		}{foo: ""}, nil, "", "", nil},
+		{struct {
+			Foo string `validate:"-"`
+		}{Foo: "invalid-email"}, nil, "", "", nil},
+
+		// Skip nested struct.
+		{struct {
+			Nested struct {
+				Bar string `validate:"required"`
+			} `validate:"-"`
+		}{}, nil, "", "", nil},
+
+		// Skip with pointers.
+		{struct {
+			Foo *string `validate:"-"`
+		}{Foo: nil}, nil, "", "", nil},
+		{struct {
+			Foo **string `validate:"-"`
+		}{Foo: nil}, nil, "", "", nil},
+
+		// Skip with whitespace.
+		{struct {
+			Foo string `validate:"  -  "`
+		}{Foo: ""}, nil, "", "", nil},
+
+		// Mixed: some fields skipped, some validated.
+		{struct {
+			Skip  string `validate:"-"`
+			Check string `validate:"required"`
+		}{Skip: "", Check: ""}, nil, "", "Check: required check failed: value missing", ErrRequired},
+		{struct {
+			Skip  string `validate:"-"`
+			Check string `validate:"required"`
+		}{Skip: "", Check: "valid"}, nil, "", "", nil},
 	}
 
 	for _, tc := range testCases {

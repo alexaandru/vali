@@ -31,7 +31,8 @@ Foo *string `validate:"required"`
 passes if `*Foo != ""` NOT if `Foo != nil`.
 
 It validates both public and private fields, as long as they have
-the validation tags.
+the validation tags. To skip a field entirely (including nested
+structs), use `validate:"-"`.
 
 Non-goals:
 
@@ -46,6 +47,7 @@ rather than in struct tags "perlisms".
 
 | Check          | Description                    | Domain                                                                                                                                                                                                        |
 | -------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| -              | skip field validation          | `any`                                                                                                                                                                                                         |
 | required       | must NOT be `IsZero()`         | `any`                                                                                                                                                                                                         |
 | regex:`<rx>`   | must match `<rx>`              | `string`, `Stringer`                                                                                                                                                                                          |
 | eq:`<number>`  | must == `number`               | [CanInt](https://pkg.go.dev/reflect#Value.CanInt), [CanUint](https://pkg.go.dev/reflect#Value.CanUint), [CanFloat](https://pkg.go.dev/reflect#Value.CanFloat), Can[Len](https://pkg.go.dev/reflect#Value.Len) |

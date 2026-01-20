@@ -224,6 +224,10 @@ func (v *Validator) validate(val reflect.Value, tag string, scope ...string) (er
 		reflTag := iType.Tag
 		tag = strings.TrimSpace(reflTag.Get(v.tag))
 
+		if tag == "-" {
+			continue
+		}
+
 		iVal := val.Field(i)
 		for iVal.Kind() == reflect.Pointer {
 			iVal = iVal.Elem()
